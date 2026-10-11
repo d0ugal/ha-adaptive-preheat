@@ -1,0 +1,36 @@
+retrain:
+  fields:
+    entity_id:
+      required: false
+      selector:
+        entity:
+          multiple: true
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: room_thermal_model
+reset:
+  fields:
+    entity_id:
+      required: false
+      selector:
+        entity:
+          multiple: true
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: room_thermal_model
+export_diagnostics:
+  fields:
+    entity_id:
+      required: false
+      selector:
+        entity:
+          multiple: true
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: room_thermal_model
