@@ -1,0 +1,21 @@
+[project]
+name = "ha-room-thermal-model"
+version = "0.1.0"
+description = "Generic Home Assistant integration that learns a physical thermal model per room and predicts preheat time."
+requires-python = ">=3.13"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components", "rtm_core"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
