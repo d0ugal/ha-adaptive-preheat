@@ -48,7 +48,8 @@ Lumped single-capacity (RC) model on a 5-minute grid:
     Tout averaged over the preheat window from the weather forecast (fixed-point, ≤ 3 iters);
   - coasting temperature after t minutes without heating (`u = 0`), for "will it still be
     warm when I'm back?".
-- Quality: rolling chronological holdout; 60-min-ahead simulated forecast RMSE vs a
+- Quality: chronological holdout (currently a single 80/20 split: fit on the first 80 % of
+  the usable rows, evaluate on the last 20 %; a rolling holdout is future work); 60-min-ahead simulated forecast RMSE vs a
   persistence baseline (temperature stays the same) → skill; observed heat-up episodes
   (heating on, ≥ 0.5 K rise) → preheat-duration error (minutes, MAE). Maturity =
   data factor (hours of heating and of cooling seen) × skill factor.
@@ -63,9 +64,9 @@ Lumped single-capacity (RC) model on a 5-minute grid:
   persistence (schema version), services `retrain`, `reset`, `export_diagnostics`,
   `diagnostics.py`.
 - Entities per zone (device per zone, stable unique_ids, en, it, fr, de translations):
-  - `sensor.<zone>_preheat_minutes` (min; attrs target, reachable, outdoor_used, t_infinity)
+  - `sensor.<zone>_preheat_minutes` (min; attrs `target_c`, `reachable`, `outdoor_used_c`, `max_reachable_c`; `t_infinity_c` inside `details`)
   - `sensor.<zone>_preheat_start` (timestamp; only with arrival sensor)
-  - `binary_sensor.<zone>_preheat_now` (on when now ≥ preheat start)
+  - `binary_sensor.<zone>_preheat_now` (on when now ≥ preheat start; latched until arrival)
   - `sensor.<zone>_max_reachable_temperature` (°C)
   - `sensor.<zone>_model_maturity` (%; attrs rmse, baseline_rmse, duration_mae, samples)
   - diagnostic: `_time_constant` (h), `_heating_rate` (K/h), `_dead_time` (min)

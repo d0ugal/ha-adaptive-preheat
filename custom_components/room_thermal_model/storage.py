@@ -6,7 +6,9 @@ Stored document (``.storage/room_thermal_model.<entry_id>``)::
       "schema": 1,
       "model": {...},              # ThermalModel.to_dict() or null
       "last_fit": "2026-...",      # ISO timestamp of the last successful fit or null
-      "bootstrapped": true         # recorder history already merged once
+      "bootstrapped": true,        # recorder history already merged once
+      "inputs": ["climate...", ...] # sorted sample entities the model was learnt from
+                                   # (null/missing in older documents: accepted as-is)
     }
 """
 
@@ -27,7 +29,13 @@ type StoredData = dict[str, Any]
 
 def empty_document() -> StoredData:
     """Document used when nothing is stored yet."""
-    return {"schema": STORAGE_SCHEMA, "model": None, "last_fit": None, "bootstrapped": False}
+    return {
+        "schema": STORAGE_SCHEMA,
+        "model": None,
+        "last_fit": None,
+        "bootstrapped": False,
+        "inputs": None,
+    }
 
 
 class RTMStore(Store[StoredData]):

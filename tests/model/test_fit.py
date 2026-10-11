@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from rtm_core import ModelConfig, RCThermalModel
 from rtm_core import synthetic as syn
 from rtm_core.cooling import cooling_tau
 from rtm_core.deadtime import tangent_dead_time
-from rtm_core.fit import A_MIN, B_MIN, solve_linear, solve_projected
+from rtm_core.fit import A_MIN, B_MIN, build_dataset, solve_linear, solve_projected
 
 
 def _rel(est: float, true: float) -> float:
@@ -26,13 +28,56 @@ def test_parameter_recovery_clean(trained, name):
 
 
 @pytest.mark.parametrize("name", ["radiator", "fast_radiator", "underfloor"])
+def test_gains_c_recovered(trained, name):
+    spec = syn.ROOMS[name]()
+    p = trained(name, 14).parameters()
+    # c is an additive term (0.1-0.5 K/h here) that the fit trades off against b·(T - Tout),
+    # so its relative error reaches ~30 % (the absolute error stays ~0.15 K/h); assert an
+    # absolute tolerance, which is still small against the heating gain a (>= 1.5 K/h)
+    assert abs(p.gains_k_per_h - spec.c) < 0.2
+
+
+@pytest.mark.parametrize("name", ["radiator", "fast_radiator", "underfloor"])
 def test_parameter_recovery_with_unflagged_windows(trained, run_of, name):
     spec = syn.ROOMS[name]()
     assert run_of(name, 14, True).windows, "scenario must contain window openings"
     p = trained(name, 14, True).parameters()
-    assert _rel(p.heating_rate_k_per_h, spec.a) < 0.25
-    assert _rel(p.loss_rate_per_h, spec.b) < 0.25
+    assert _rel(p.heating_rate_k_per_h, spec.a) < 0.15
+    assert _rel(p.loss_rate_per_h, spec.b) < 0.15
     assert abs(p.dead_time_minutes - spec.dead_time_minutes) <= 15
+
+
+@pytest.mark.parametrize("name", ["radiator", "fast_radiator"])
+def test_glitch_guard_drops_single_step_spikes(name):
+    spec = syn.ROOMS[name]()
+    run = syn.generate(spec, 14, windows=False, disturbances=False)
+
+    def fitted(samples):
+        m = RCThermalModel(ModelConfig())
+        m.load_history(samples, replace=True)
+        m.fit(samples[-1].ts)
+        return m
+
+    def rows(m, now):
+        return len(build_dataset(m._grid, m.config, now.timestamp()).k)
+
+    clean_model = fitted(run.samples)
+    clean = clean_model.parameters()
+    spiked = list(run.samples)
+    n_spikes = 0
+    for n, i in enumerate(range(600, len(spiked), 1200)):  # one spike every 20 h
+        n_spikes += 1
+        spiked[i] = replace(spiked[i], indoor_c=spiked[i].indoor_c + (4.0 if n % 2 else -4.0))
+    spiked_model = fitted(spiked)
+    guarded = spiked_model.parameters()
+    assert guarded.heating_rate_k_per_h == pytest.approx(clean.heating_rate_k_per_h, rel=0.03)
+    assert guarded.loss_rate_per_h == pytest.approx(clean.loss_rate_per_h, rel=0.03)
+    assert guarded.gains_k_per_h == pytest.approx(clean.gains_k_per_h, abs=0.05)
+    assert _rel(guarded.heating_rate_k_per_h, spec.a) < 0.15
+    assert _rel(guarded.loss_rate_per_h, spec.b) < 0.15
+    # the guard dropped the rows around the spikes (each spike touches two grid steps)
+    now = run.samples[-1].ts
+    assert rows(clean_model, now) - rows(spiked_model, now) >= n_spikes
 
 
 def test_no_outdoor_room_learns_equilibrium(trained):

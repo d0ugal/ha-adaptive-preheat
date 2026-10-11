@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from unittest.mock import patch
 
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.const import STATE_UNKNOWN
@@ -11,6 +12,7 @@ from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.room_thermal_model.coordinator import RTMCoordinator
+from custom_components.room_thermal_model.rtm_core.base import PreheatEstimate
 
 from .conftest import (
     ARRIVAL,
@@ -59,7 +61,7 @@ async def test_learning_then_estimate(hass: HomeAssistant, fake_model: None) -> 
     assert attrs["max_reachable_c"] == 24.0
     assert attrs["forecast_used"] is False
     assert attrs["maturity"] == 50.0
-    assert attrs["details"] == {"iterations": 1}
+    assert attrs["details"] == {"iterations": 1, "outdoor_source": "current"}
     assert hass.states.get(f"sensor.{SLUG}_time_constant").state == "8.0"
     assert hass.states.get(f"sensor.{SLUG}_heating_rate").state == "3.0"
     assert hass.states.get(f"sensor.{SLUG}_dead_time").state == "30.0"
@@ -197,7 +199,8 @@ async def test_preheat_start_and_now(
     entry = await setup_entry(hass, make_entry(hass, arrival=True))
     coordinator = await _fitted(hass, entry)
     start = dt_util.parse_datetime(hass.states.get(START).state)
-    assert abs(start - (arrival - timedelta(minutes=30))) < timedelta(seconds=1)
+    # Cooling 1 K/h until the start: fixed point lead = 70 - lead / 3 = 52.5 min.
+    assert abs(start - (arrival - timedelta(minutes=52.5))) < timedelta(seconds=10)
     assert hass.states.get(NOW_SENSOR).state == "off"
     assert coordinator.data.coast_c is not None
     assert hass.states.get(PREHEAT).attributes["arrival"] == arrival.isoformat()
@@ -259,6 +262,79 @@ async def test_arrival_change_refreshes(hass: HomeAssistant, fake_model: None) -
     hass.states.async_set(ARRIVAL, arrival.isoformat(), {"device_class": "timestamp"})
     await hass.async_block_till_done(wait_background_tasks=True)
     start = dt_util.parse_datetime(hass.states.get(START).state)
-    assert abs(start - (arrival - timedelta(minutes=30))) < timedelta(seconds=1)
+    # Cooling 1 K/h for 3 h: lead = 90 - lead / 3 = 67.5 min.
+    assert abs(start - (arrival - timedelta(minutes=67.5))) < timedelta(seconds=10)
     # Arrival changes do not create samples by themselves (the refresh does one poll sample).
     assert len(model.samples) <= samples + 1
+
+
+async def test_unreachable_target_with_arrival(hass: HomeAssistant, fake_model: None) -> None:
+    """Unreachable target: minutes stay unknown, but preheat starts towards the maximum."""
+    set_inputs(hass)
+    hass.states.async_set(CLIMATE, "heat", climate_attrs(current=17.0))
+    arrival = dt_util.utcnow() + timedelta(hours=2)
+    hass.states.async_set(ARRIVAL, arrival.isoformat(), {"device_class": "timestamp"})
+    entry = await setup_entry(hass, make_entry(hass, arrival=True))
+    coordinator = await _fitted(hass, entry)
+    coordinator.model.reachable = False  # max reachable 19.5 -> goal 19.0
+    await coordinator.async_refresh()
+    assert hass.states.get(PREHEAT).state == STATE_UNKNOWN
+    assert hass.states.get(PREHEAT).attributes["reason"] == "unreachable"
+    # Cooling 1 K/h towards a 19.0 goal: lead = 80 - lead / 3 = 60 min.
+    start = dt_util.parse_datetime(hass.states.get(START).state)
+    assert abs(start - (arrival - timedelta(minutes=60))) < timedelta(seconds=10)
+    assert hass.states.get(NOW_SENSOR).state == "off"
+
+    # Already at the goal: no heating now, but the room cools until the start.
+    # lead = (120 - lead) / 3 = 30 min.
+    hass.states.async_set(CLIMATE, "heat", climate_attrs(current=19.0))
+    await coordinator.async_refresh()
+    start = dt_util.parse_datetime(hass.states.get(START).state)
+    assert abs(start - (arrival - timedelta(minutes=30))) < timedelta(seconds=10)
+    assert hass.states.get(NOW_SENSOR).state == "off"
+
+
+async def test_preheat_now_latch_holds_and_releases(
+    hass: HomeAssistant, fake_model: None, freezer: FrozenDateTimeFactory
+) -> None:
+    """On stays on when the room reaches the target; a far postponement releases it."""
+    set_inputs(hass)
+    arrival = dt_util.utcnow() + timedelta(minutes=20)
+    hass.states.async_set(ARRIVAL, arrival.isoformat(), {"device_class": "timestamp"})
+    entry = await setup_entry(hass, make_entry(hass, arrival=True))
+    coordinator = await _fitted(hass, entry)
+    assert hass.states.get(NOW_SENSOR).state == "on"
+
+    hass.states.async_set(CLIMATE, "heat", climate_attrs(current=21.0))
+    await coordinator.async_refresh()
+    assert hass.states.get(PREHEAT).attributes["reason"] == "at_target"
+    assert coordinator.data.latched
+    assert hass.states.get(NOW_SENSOR).state == "on"
+
+    new_arrival = dt_util.utcnow() + timedelta(hours=5)
+    hass.states.async_set(ARRIVAL, new_arrival.isoformat(), {"device_class": "timestamp"})
+    await hass.async_block_till_done(wait_background_tasks=True)
+    await coordinator.async_refresh()
+    assert not coordinator.data.latched
+    assert hass.states.get(NOW_SENSOR).state == "off"
+
+
+async def test_status_no_outdoor(hass: HomeAssistant, fake_model: None) -> None:
+    """A model without an outdoor temperature reports its own status, not unreachable."""
+    set_inputs(hass)
+    entry = await setup_entry(hass, make_entry(hass))
+    coordinator = await _fitted(hass, entry)
+    estimate = PreheatEstimate(
+        minutes=None,
+        reachable=False,
+        target_c=20.5,
+        start_c=19.0,
+        outdoor_used_c=None,
+        max_reachable_c=None,
+        reason={"status": "no_outdoor", "outdoor_source": "no_outdoor"},
+    )
+    with patch.object(coordinator.model, "preheat", return_value=estimate):
+        await coordinator.async_refresh()
+    state = hass.states.get(PREHEAT)
+    assert state.state == STATE_UNKNOWN
+    assert state.attributes["reason"] == "no_outdoor"

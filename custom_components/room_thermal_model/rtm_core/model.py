@@ -413,9 +413,9 @@ class RCThermalModel(ThermalModel):
 
     @classmethod
     def from_dict(cls, data: dict[str, Any], config: ModelConfig) -> RCThermalModel:
-        model = cls(config)
         if not isinstance(data, dict) or data.get("version") != STATE_VERSION:
-            return model
+            raise ValueError("unsupported model state")
+        model = cls(config)
         params = data.get("params")
         if params:
             model._params = {

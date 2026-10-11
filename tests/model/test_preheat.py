@@ -173,7 +173,10 @@ def test_json_round_trip_identical_outputs(trained, run_of):
 
 
 def test_from_dict_tolerates_garbage_and_reset(trained):
-    assert RCThermalModel.from_dict({"version": 999}, ModelConfig()).parameters() is None
+    with pytest.raises(ValueError):
+        RCThermalModel.from_dict({"version": 999}, ModelConfig())
+    with pytest.raises(ValueError):
+        RCThermalModel.from_dict("garbage", ModelConfig())  # type: ignore[arg-type]
     m = trained("radiator", 14)
     m.reset()
     assert m.parameters() is None and m.quality().samples == 0

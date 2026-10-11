@@ -70,6 +70,10 @@ SNAPSHOT_MIN_INTERVAL_S: Final = 600  # at most one model.to_dict() per 10 min (
 FORECAST_CACHE_MINUTES: Final = 30
 FORECAST_TYPES: Final = ("hourly", "twice_daily", "daily")
 FALLBACK_EFFORT_MARGIN_K: Final = 0.2  # no hvac_action: heating when target > current + this
+LEAD_MAX_ITERATIONS: Final = 10  # fixed-point iterations of the preheat lead time
+LEAD_TOLERANCE_MINUTES: Final = 0.5  # lead time convergence threshold
+UNREACHABLE_MARGIN_K: Final = 0.5  # unreachable target: aim this far below the maximum
+PREHEAT_HOLD_MINUTES: Final = 30  # preheat_now stays on this long past the expected end
 
 # hvac_action values (standard HVACAction strings)
 HEATING_ACTIONS: Final = frozenset({"heating", "preheating"})
@@ -81,6 +85,7 @@ STATUS_OK: Final = "ok"
 STATUS_LEARNING: Final = "learning"
 STATUS_NO_TEMPERATURE: Final = "no_temperature"
 STATUS_UNREACHABLE: Final = "unreachable"
+STATUS_NO_OUTDOOR: Final = "no_outdoor"
 STATUS_AT_TARGET: Final = "at_target"
 
 # Service fields

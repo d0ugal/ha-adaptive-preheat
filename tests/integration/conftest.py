@@ -134,7 +134,8 @@ async def setup_entry(hass: HomeAssistant, entry: MockConfigEntry) -> MockConfig
 class FakeModel(ThermalModel):
     """Deterministic model double (independent of the real RC implementation).
 
-    preheat: ``minutes`` = (target - start) / rate * 60 with rate ``a`` K/h.
+    preheat: ``minutes`` = (target - start) / rate * 60 with rate ``a`` K/h; with
+    ``reachable`` False the maximum reachable temperature is 19.5 °C.
     """
 
     config: ModelConfig = field(default_factory=ModelConfig)
@@ -179,14 +180,19 @@ class FakeModel(ThermalModel):
         )
         assert self.params is not None
         minutes = max(0.0, (target_c - start_c) / self.params.heating_rate_k_per_h * 60)
+        max_reachable = 24.0 if self.reachable else 19.5
+        reachable = target_c <= max_reachable
         return PreheatEstimate(
-            minutes=minutes if self.reachable else None,
-            reachable=self.reachable,
+            minutes=minutes if reachable else None,
+            reachable=reachable,
             target_c=target_c,
             start_c=start_c,
             outdoor_used_c=forecast[0].outdoor_c if forecast else outdoor_c,
-            max_reachable_c=24.0 if self.reachable else 19.5,
-            reason={"iterations": 1},
+            max_reachable_c=max_reachable,
+            reason={
+                "iterations": 1,
+                "outdoor_source": "forecast" if forecast else "current",
+            },
         )
 
     def coast(

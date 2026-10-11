@@ -249,6 +249,62 @@ async def test_unreadable_store_discarded(
     assert entry.runtime_data.bootstrapped  # bootstrap ran again
 
 
+async def test_unknown_model_version_bootstraps(
+    hass: HomeAssistant, hass_storage: dict[str, Any], no_history: Any
+) -> None:
+    """A stored real model of an unknown version is discarded and the history re-read."""
+    set_inputs(hass)
+    entry = make_entry(hass)
+    hass_storage[f"{DOMAIN}.{entry.entry_id}"] = {
+        "version": 1,
+        "minor_version": 1,
+        "key": f"{DOMAIN}.{entry.entry_id}",
+        "data": {
+            "schema": 1,
+            "model": {"version": 999, "params": None},
+            "last_fit": None,
+            "bootstrapped": True,
+        },
+    }
+    await setup_entry(hass, entry)
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.runtime_data.snapshot is not None  # replaced by the fresh model's snapshot
+    assert entry.runtime_data.snapshot.get("version") != 999
+    no_history.assert_called_once()
+
+
+async def test_changed_inputs_reimport_history(
+    hass: HomeAssistant, fake_model: None, hass_storage: dict[str, Any], no_history: Any
+) -> None:
+    """A model learnt from other inputs is not restored; the history is imported again."""
+    set_inputs(hass)
+    entry = make_entry(hass)
+    key = f"{DOMAIN}.{entry.entry_id}"
+    document = {
+        "schema": 1,
+        "model": {"fake": True, "fitted": True},
+        "last_fit": None,
+        "bootstrapped": True,
+        "inputs": [CLIMATE],
+    }
+    stored = {"version": 1, "minor_version": 1, "key": key, "data": document}
+
+    hass_storage[key] = stored
+    await setup_entry(hass, entry)
+    no_history.assert_not_called()  # same inputs: restored
+    assert entry.runtime_data.model.params is not None
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert hass_storage[key]["data"]["inputs"] == [CLIMATE]
+
+    document["inputs"] = [CLIMATE, "sensor.old_room"]
+    hass_storage[key] = stored
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    no_history.assert_called_once()
+    assert entry.runtime_data.model.params is None
+
+
 async def test_remove_entry_deletes_store(
     hass: HomeAssistant, fake_model: None, hass_storage: dict[str, Any]
 ) -> None:

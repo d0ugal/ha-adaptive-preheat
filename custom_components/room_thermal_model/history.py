@@ -153,6 +153,7 @@ async def async_load_zone_history(
         _LOGGER.debug("Recorder not loaded, skipping history bootstrap for %s", inputs.climate)
         return []
     from homeassistant.components.recorder import get_instance
+    from sqlalchemy.exc import SQLAlchemyError
 
     end = dt_util.utcnow()
     start = end - timedelta(days=days)
@@ -161,6 +162,6 @@ async def async_load_zone_history(
         return await get_instance(hass).async_add_executor_job(
             _load_chunked, hass, inputs, system_unit, start, end
         )
-    except (HomeAssistantError, KeyError, ValueError) as err:
+    except (HomeAssistantError, SQLAlchemyError, KeyError, ValueError) as err:
         _LOGGER.warning("Could not read history for %s: %s", inputs.climate, err)
         return []

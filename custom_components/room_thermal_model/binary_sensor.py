@@ -28,7 +28,7 @@ async def async_setup_entry(
 
 
 class PreheatNowBinarySensor(RTMEntity, BinarySensorEntity):
-    """On from the preheat start until the arrival."""
+    """On from the preheat start until the arrival (held on once started)."""
 
     def __init__(self, coordinator: RTMCoordinator) -> None:
         """Initialize the binary sensor."""
@@ -36,7 +36,11 @@ class PreheatNowBinarySensor(RTMEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool | None:
-        """Evaluated against the current time (timers refresh it at the edges)."""
+        """Evaluated against the current time (timers refresh it at the edges).
+
+        Once on, it stays on until the arrival even if the room reaches the target early
+        (the coordinator releases it when the arrival is postponed far beyond the start).
+        """
         zone = self.zone
         return zone.preheat_now(dt_util.utcnow()) if zone else None
 

@@ -51,15 +51,20 @@ from .const import (
     DEFAULT_TARGET_TEMPERATURE,
     DEFAULT_UPDATE_INTERVAL_MINUTES,
     DOMAIN,
+    LEAD_MAX_ITERATIONS,
+    LEAD_TOLERANCE_MINUTES,
+    PREHEAT_HOLD_MINUTES,
     SAMPLE_INTERVAL_MINUTES,
     SAVE_DELAY_SECONDS,
     SNAPSHOT_MIN_INTERVAL_S,
     STATUS_AT_TARGET,
     STATUS_LEARNING,
+    STATUS_NO_OUTDOOR,
     STATUS_NO_TEMPERATURE,
     STATUS_OK,
     STATUS_UNREACHABLE,
     TARGET_MODE_CLIMATE,
+    UNREACHABLE_MARGIN_K,
 )
 from .forecast import WeatherForecast
 from .history import async_load_zone_history
@@ -107,6 +112,7 @@ class ZoneData:
     arrival: datetime | None = None  # valid future arrival only
     preheat_start: datetime | None = None
     coast_c: float | None = None  # temperature at arrival without heating
+    latched: bool = False  # preheat_now held on (hysteresis)
     last_fit: datetime | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
@@ -121,9 +127,16 @@ class ZoneData:
         return self.preheat.minutes if self.preheat is not None else None
 
     def preheat_now(self, now: datetime) -> bool | None:
-        """On from the preheat start until the arrival; unknown without an estimate."""
+        """On from the preheat start until the arrival; unknown without a start.
+
+        Once on it is held (``latched``) until the arrival, so it neither drops when the
+        room reaches the target early nor flickers while heating; the update releases the
+        latch when the arrival moves well past the expected end of the preheat.
+        """
         if self.arrival is None or self.arrival <= now:
             return False
+        if self.latched:
+            return True
         if self.preheat_start is None:
             return None
         return now >= self.preheat_start
@@ -225,6 +238,13 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
         self.config_entry.async_on_unload(self._async_unsubscribe)
         stored = await self.storage.async_load()
         model_data = stored.get("model")
+        stored_inputs = stored.get("inputs")
+        if stored_inputs is not None and stored_inputs != sorted(self.inputs.sample_entities):
+            _LOGGER.info(
+                "Inputs of %s changed since the model was learnt: starting afresh",
+                self.zone_name,
+            )
+            model_data = None
         if isinstance(model_data, dict) and model_data:
             try:
                 self.model = await self.hass.async_add_executor_job(
@@ -384,6 +404,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
         outdoor = current.outdoor_c
         estimate: PreheatEstimate | None = None
         coast_c: float | None = None
+        lead: float | None = None
         try:
             async with self._lock:
                 parameters = self.model.parameters()
@@ -393,6 +414,9 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
                     if arrival is not None:
                         minutes = (arrival - now).total_seconds() / 60.0
                         coast_c = self.model.coast(now, indoor, minutes, outdoor, forecast)
+                        lead = self._lead_minutes(
+                            now, indoor, target_c, outdoor, forecast, estimate, minutes
+                        )
         except MODEL_ERRORS as err:
             raise UpdateFailed(
                 translation_domain=DOMAIN,
@@ -403,6 +427,8 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             status = STATUS_NO_TEMPERATURE
         elif parameters is None or estimate is None:
             status = STATUS_LEARNING
+        elif estimate.reason.get("status") == "no_outdoor":
+            status = STATUS_NO_OUTDOOR
         elif not estimate.reachable:
             status = STATUS_UNREACHABLE
         elif estimate.minutes is None:
@@ -411,12 +437,14 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             status = STATUS_AT_TARGET
         else:
             status = STATUS_OK
-        preheat_start: datetime | None = None
-        if arrival is not None and estimate is not None and estimate.minutes is not None:
-            preheat_start = arrival - timedelta(minutes=max(0.0, estimate.minutes))
-        forecast_used = bool(forecast)
-        if estimate is not None and "forecast_used" in estimate.reason:
-            forecast_used = bool(estimate.reason["forecast_used"])
+        preheat_start = arrival - timedelta(minutes=lead) if arrival and lead is not None else None
+        latched = (
+            self.data is not None
+            and self.data.preheat_now(now) is True
+            and arrival is not None
+            and (arrival - now).total_seconds() / 60.0 <= (lead or 0.0) + PREHEAT_HOLD_MINUTES
+        )
+        forecast_used = estimate is not None and estimate.reason.get("outdoor_source") == "forecast"
         data = ZoneData(
             updated_at=now,
             indoor_c=indoor,
@@ -428,16 +456,67 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             preheat=estimate,
             parameters=parameters,
             quality=quality,
-            forecast_used=forecast_used and estimate is not None,
+            forecast_used=forecast_used,
             forecast_type=self.forecast.cache.forecast_type if self.forecast else None,
             arrival=arrival,
             preheat_start=preheat_start,
             coast_c=coast_c,
+            latched=latched,
             last_fit=self.last_fit,
         )
         self._schedule_timers(data, now)
         await self._async_snapshot(force=fitted)
         return data
+
+    def _lead_minutes(
+        self,
+        now: datetime,
+        indoor: float,
+        target_c: float,
+        outdoor: float | None,
+        forecast: list[ForecastPoint],
+        estimate: PreheatEstimate,
+        total: float,
+    ) -> float | None:
+        """Minutes before the arrival at which heating must start (model lock held).
+
+        The room cools until the heating starts, so the duration is iterated to a fixed
+        point: lead -> start temperature after ``total - lead`` minutes of coasting ->
+        new duration. An unreachable target is replaced by the maximum reachable
+        temperature minus a margin (the sensors stay unreachable; only the start moves).
+        Returns None when no lead can be determined.
+        """
+        goal = target_c
+        if estimate.minutes is None:
+            if (
+                estimate.reachable
+                or estimate.reason.get("status") == "no_outdoor"
+                or estimate.max_reachable_c is None
+            ):
+                return None
+            goal = estimate.max_reachable_c - UNREACHABLE_MARGIN_K
+            # already near the maximum: lead 0, the loop still accounts for the cooling
+            estimate = self.model.preheat(now, indoor, goal, outdoor, forecast)
+            if estimate.minutes is None:
+                return total
+        lead = max(0.0, estimate.minutes)
+        for _ in range(LEAD_MAX_ITERATIONS):
+            wait = total - lead
+            if wait <= 0:
+                break
+            start_c = self.model.coast(now, indoor, wait, outdoor, forecast)
+            if start_c is None:
+                break
+            nxt = self.model.preheat(
+                now + timedelta(minutes=wait), start_c, goal, outdoor, forecast
+            ).minutes
+            if nxt is None:
+                break
+            if abs(nxt - lead) < LEAD_TOLERANCE_MINUTES:
+                lead = nxt
+                break
+            lead = nxt
+        return lead
 
     @callback
     def _schedule_timers(self, data: ZoneData, now: datetime) -> None:
@@ -488,6 +567,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             "model": self.snapshot,
             "last_fit": self.last_fit.isoformat() if self.last_fit else None,
             "bootstrapped": self.bootstrapped,
+            "inputs": sorted(self.inputs.sample_entities),
         }
 
     # ------------------------------------------------------------------ actions
