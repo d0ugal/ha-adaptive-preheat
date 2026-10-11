@@ -1,0 +1,173 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a zone",
+        "description": "Learns how fast this zone heats up from its history and tells you how many minutes of heating it needs to reach the target.",
+        "data": {
+          "zone_name": "Zone name",
+          "climate_entity": "Thermostat (climate)",
+          "room_temperature_sensor": "Room temperature sensor",
+          "heating_effort_sensor": "Heating effort sensor",
+          "outdoor_temperature_sensor": "Outdoor temperature sensor",
+          "weather_entity": "Weather entity",
+          "arrival_sensor": "Arrival time sensor",
+          "target_mode": "Target temperature",
+          "target_temperature": "Fixed target"
+        },
+        "data_description": {
+          "zone_name": "Name of the zone (room or heating zone); also used for the entity IDs.",
+          "climate_entity": "Climate entity of the zone. Uses current_temperature, hvac_action, temperature (target) and the HVAC mode.",
+          "room_temperature_sensor": "Optional. Replaces the thermostat's current_temperature (e.g. a sensor away from the radiator).",
+          "heating_effort_sensor": "Optional. Heating demand in % (0-100), e.g. valve opening. Without it the effort comes from hvac_action (heating = 100 %, idle/off = 0 %).",
+          "outdoor_temperature_sensor": "Optional. Current outdoor temperature (history is used for learning).",
+          "weather_entity": "Optional. Forecast for the preheat window (hourly, else twice daily, else daily) and outdoor temperature when no outdoor sensor is set.",
+          "arrival_sensor": "Optional. Timestamp sensor with the expected arrival (e.g. sensor.house_next_return_eta from Home Return Predictor): enables the preheat start and preheat now entities.",
+          "target_mode": "Use a fixed target or follow the thermostat's set temperature.",
+          "target_temperature": "Target used in fixed mode (also the fallback when the thermostat has no set temperature)."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure zone",
+        "description": "Thermostat: {climate}. Remove and add the zone again to use another thermostat.",
+        "data": {
+          "zone_name": "Zone name",
+          "room_temperature_sensor": "Room temperature sensor",
+          "heating_effort_sensor": "Heating effort sensor",
+          "outdoor_temperature_sensor": "Outdoor temperature sensor",
+          "weather_entity": "Weather entity",
+          "arrival_sensor": "Arrival time sensor"
+        },
+        "data_description": {
+          "zone_name": "Name of the zone (room or heating zone); also used for the entity IDs.",
+          "room_temperature_sensor": "Optional. Replaces the thermostat's current_temperature (e.g. a sensor away from the radiator).",
+          "heating_effort_sensor": "Optional. Heating demand in % (0-100), e.g. valve opening. Without it the effort comes from hvac_action (heating = 100 %, idle/off = 0 %).",
+          "outdoor_temperature_sensor": "Optional. Current outdoor temperature (history is used for learning).",
+          "weather_entity": "Optional. Forecast for the preheat window (hourly, else twice daily, else daily) and outdoor temperature when no outdoor sensor is set.",
+          "arrival_sensor": "Optional. Timestamp sensor with the expected arrival (e.g. sensor.house_next_return_eta from Home Return Predictor): enables the preheat start and preheat now entities."
+        }
+      }
+    },
+    "error": {
+      "name_required": "Enter a zone name."
+    },
+    "abort": {
+      "already_configured": "This thermostat is already used by a zone.",
+      "reconfigure_successful": "Zone updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Zone options",
+        "data": {
+          "target_mode": "Target temperature",
+          "target_temperature": "Fixed target",
+          "half_life_days": "History half-life",
+          "history_days": "History to learn from",
+          "update_interval_minutes": "Update interval"
+        },
+        "data_description": {
+          "target_mode": "Use a fixed target or follow the thermostat's set temperature.",
+          "target_temperature": "Target used in fixed mode (also the fallback when the thermostat has no set temperature).",
+          "half_life_days": "Older data weighs half after this many days (adapts to seasons).",
+          "history_days": "Days of recorder history loaded on first start and by the retrain action.",
+          "update_interval_minutes": "How often the estimate is recomputed, in minutes."
+        }
+      }
+    }
+  },
+  "selector": {
+    "target_mode": {
+      "options": {
+        "fixed": "Fixed value",
+        "climate": "Follow the thermostat target"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "preheat_now": {
+        "name": "Preheat now"
+      }
+    },
+    "sensor": {
+      "preheat_minutes": {
+        "name": "Preheat minutes"
+      },
+      "preheat_start": {
+        "name": "Preheat start"
+      },
+      "max_reachable_temperature": {
+        "name": "Max reachable temperature"
+      },
+      "model_maturity": {
+        "name": "Model maturity"
+      },
+      "time_constant": {
+        "name": "Time constant"
+      },
+      "heating_rate": {
+        "name": "Heating rate"
+      },
+      "dead_time": {
+        "name": "Dead time"
+      }
+    }
+  },
+  "services": {
+    "retrain": {
+      "name": "Retrain",
+      "description": "Reload the recorder history and refit the model of the selected zones (all zones without a target).",
+      "fields": {
+        "entity_id": {
+          "name": "Entities",
+          "description": "Any entity of the zone (its thermostat, an input sensor or one of its sensors). Leave empty for all zones."
+        },
+        "config_entry_id": {
+          "name": "Zone",
+          "description": "Config entry of the zone. Leave empty for all zones."
+        }
+      }
+    },
+    "reset": {
+      "name": "Reset",
+      "description": "Forget everything learnt by the selected zones (all zones without a target).",
+      "fields": {
+        "entity_id": {
+          "name": "Entities",
+          "description": "Any entity of the zone (its thermostat, an input sensor or one of its sensors). Leave empty for all zones."
+        },
+        "config_entry_id": {
+          "name": "Zone",
+          "description": "Config entry of the zone. Leave empty for all zones."
+        }
+      }
+    },
+    "export_diagnostics": {
+      "name": "Export diagnostics",
+      "description": "Write the diagnostics of the selected zones to a JSON file in the configuration folder and return its path.",
+      "fields": {
+        "entity_id": {
+          "name": "Entities",
+          "description": "Any entity of the zone (its thermostat, an input sensor or one of its sensors). Leave empty for all zones."
+        },
+        "config_entry_id": {
+          "name": "Zone",
+          "description": "Config entry of the zone. Leave empty for all zones."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "Room Thermal Model has no loaded zone."
+    },
+    "unknown_zone": {
+      "message": "{target} does not belong to any Room Thermal Model zone."
+    },
+    "update_failed": {
+      "message": "Update of zone {zone} failed: {error}"
+    }
+  }
+}

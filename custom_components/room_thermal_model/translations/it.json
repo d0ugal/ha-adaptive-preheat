@@ -1,0 +1,173 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Aggiungi una zona",
+        "description": "Impara dallo storico quanto velocemente si scalda questa zona e indica quanti minuti di riscaldamento servono per raggiungere l'obiettivo.",
+        "data": {
+          "zone_name": "Nome della zona",
+          "climate_entity": "Termostato (climate)",
+          "room_temperature_sensor": "Sensore temperatura stanza",
+          "heating_effort_sensor": "Sensore sforzo di riscaldamento",
+          "outdoor_temperature_sensor": "Sensore temperatura esterna",
+          "weather_entity": "Entità meteo",
+          "arrival_sensor": "Sensore orario di arrivo",
+          "target_mode": "Temperatura obiettivo",
+          "target_temperature": "Obiettivo fisso"
+        },
+        "data_description": {
+          "zone_name": "Nome della zona (stanza o zona di riscaldamento); usato anche per gli ID delle entità.",
+          "climate_entity": "Entità climate della zona. Usa current_temperature, hvac_action, temperature (obiettivo) e la modalità HVAC.",
+          "room_temperature_sensor": "Facoltativo. Sostituisce la current_temperature del termostato (es. un sensore lontano dal radiatore).",
+          "heating_effort_sensor": "Facoltativo. Richiesta di calore in % (0-100), es. apertura valvola. Senza, lo sforzo deriva da hvac_action (heating = 100 %, idle/off = 0 %).",
+          "outdoor_temperature_sensor": "Facoltativo. Temperatura esterna attuale (lo storico viene usato per l'apprendimento).",
+          "weather_entity": "Facoltativo. Previsione per la finestra di preriscaldamento (oraria, altrimenti due volte al giorno, altrimenti giornaliera) e temperatura esterna quando manca il sensore esterno.",
+          "arrival_sensor": "Facoltativo. Sensore timestamp con l'arrivo previsto (es. sensor.house_next_return_eta di Home Return Predictor): abilita le entità inizio preriscaldamento e preriscalda ora.",
+          "target_mode": "Usa un obiettivo fisso o segui la temperatura impostata sul termostato.",
+          "target_temperature": "Obiettivo in modalità fissa (anche il ripiego quando il termostato non ha una temperatura impostata)."
+        }
+      },
+      "reconfigure": {
+        "title": "Riconfigura la zona",
+        "description": "Termostato: {climate}. Per usare un altro termostato rimuovi e aggiungi di nuovo la zona.",
+        "data": {
+          "zone_name": "Nome della zona",
+          "room_temperature_sensor": "Sensore temperatura stanza",
+          "heating_effort_sensor": "Sensore sforzo di riscaldamento",
+          "outdoor_temperature_sensor": "Sensore temperatura esterna",
+          "weather_entity": "Entità meteo",
+          "arrival_sensor": "Sensore orario di arrivo"
+        },
+        "data_description": {
+          "zone_name": "Nome della zona (stanza o zona di riscaldamento); usato anche per gli ID delle entità.",
+          "room_temperature_sensor": "Facoltativo. Sostituisce la current_temperature del termostato (es. un sensore lontano dal radiatore).",
+          "heating_effort_sensor": "Facoltativo. Richiesta di calore in % (0-100), es. apertura valvola. Senza, lo sforzo deriva da hvac_action (heating = 100 %, idle/off = 0 %).",
+          "outdoor_temperature_sensor": "Facoltativo. Temperatura esterna attuale (lo storico viene usato per l'apprendimento).",
+          "weather_entity": "Facoltativo. Previsione per la finestra di preriscaldamento (oraria, altrimenti due volte al giorno, altrimenti giornaliera) e temperatura esterna quando manca il sensore esterno.",
+          "arrival_sensor": "Facoltativo. Sensore timestamp con l'arrivo previsto (es. sensor.house_next_return_eta di Home Return Predictor): abilita le entità inizio preriscaldamento e preriscalda ora."
+        }
+      }
+    },
+    "error": {
+      "name_required": "Inserisci un nome per la zona."
+    },
+    "abort": {
+      "already_configured": "Questo termostato è già usato da una zona.",
+      "reconfigure_successful": "Zona aggiornata."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni della zona",
+        "data": {
+          "target_mode": "Temperatura obiettivo",
+          "target_temperature": "Obiettivo fisso",
+          "half_life_days": "Emivita dello storico",
+          "history_days": "Storico da cui imparare",
+          "update_interval_minutes": "Intervallo di aggiornamento"
+        },
+        "data_description": {
+          "target_mode": "Usa un obiettivo fisso o segui la temperatura impostata sul termostato.",
+          "target_temperature": "Obiettivo in modalità fissa (anche il ripiego quando il termostato non ha una temperatura impostata).",
+          "half_life_days": "I dati più vecchi pesano la metà dopo questi giorni (si adatta alle stagioni).",
+          "history_days": "Giorni di storico del recorder caricati al primo avvio e dall'azione riaddestra.",
+          "update_interval_minutes": "Ogni quanti minuti viene ricalcolata la stima."
+        }
+      }
+    }
+  },
+  "selector": {
+    "target_mode": {
+      "options": {
+        "fixed": "Valore fisso",
+        "climate": "Segui l'obiettivo del termostato"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "preheat_now": {
+        "name": "Preriscalda ora"
+      }
+    },
+    "sensor": {
+      "preheat_minutes": {
+        "name": "Minuti di preriscaldamento"
+      },
+      "preheat_start": {
+        "name": "Inizio preriscaldamento"
+      },
+      "max_reachable_temperature": {
+        "name": "Temperatura massima raggiungibile"
+      },
+      "model_maturity": {
+        "name": "Maturità del modello"
+      },
+      "time_constant": {
+        "name": "Costante di tempo"
+      },
+      "heating_rate": {
+        "name": "Velocità di riscaldamento"
+      },
+      "dead_time": {
+        "name": "Tempo morto"
+      }
+    }
+  },
+  "services": {
+    "retrain": {
+      "name": "Riaddestra",
+      "description": "Ricarica lo storico del recorder e riadatta il modello delle zone selezionate (tutte le zone senza destinazione).",
+      "fields": {
+        "entity_id": {
+          "name": "Entità",
+          "description": "Qualsiasi entità della zona (termostato, un sensore di ingresso o uno dei suoi sensori). Lascia vuoto per tutte le zone."
+        },
+        "config_entry_id": {
+          "name": "Zona",
+          "description": "Voce di configurazione della zona. Lascia vuoto per tutte le zone."
+        }
+      }
+    },
+    "reset": {
+      "name": "Azzera",
+      "description": "Dimentica tutto ciò che le zone selezionate hanno imparato (tutte le zone senza destinazione).",
+      "fields": {
+        "entity_id": {
+          "name": "Entità",
+          "description": "Qualsiasi entità della zona (termostato, un sensore di ingresso o uno dei suoi sensori). Lascia vuoto per tutte le zone."
+        },
+        "config_entry_id": {
+          "name": "Zona",
+          "description": "Voce di configurazione della zona. Lascia vuoto per tutte le zone."
+        }
+      }
+    },
+    "export_diagnostics": {
+      "name": "Esporta diagnostica",
+      "description": "Scrive la diagnostica delle zone selezionate in un file JSON nella cartella di configurazione e ne restituisce il percorso.",
+      "fields": {
+        "entity_id": {
+          "name": "Entità",
+          "description": "Qualsiasi entità della zona (termostato, un sensore di ingresso o uno dei suoi sensori). Lascia vuoto per tutte le zone."
+        },
+        "config_entry_id": {
+          "name": "Zona",
+          "description": "Voce di configurazione della zona. Lascia vuoto per tutte le zone."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "Room Thermal Model non ha zone caricate."
+    },
+    "unknown_zone": {
+      "message": "{target} non appartiene a nessuna zona di Room Thermal Model."
+    },
+    "update_failed": {
+      "message": "Aggiornamento della zona {zone} non riuscito: {error}"
+    }
+  }
+}

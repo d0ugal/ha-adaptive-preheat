@@ -1,0 +1,24 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "preheat_now": {
+        "default": "mdi:radiator-off",
+        "state": { "on": "mdi:radiator" }
+      }
+    },
+    "sensor": {
+      "preheat_minutes": { "default": "mdi:timer-outline" },
+      "preheat_start": { "default": "mdi:clock-start" },
+      "max_reachable_temperature": { "default": "mdi:thermometer-chevron-up" },
+      "model_maturity": { "default": "mdi:school-outline" },
+      "time_constant": { "default": "mdi:timer-sand" },
+      "heating_rate": { "default": "mdi:thermometer-plus" },
+      "dead_time": { "default": "mdi:timer-pause-outline" }
+    }
+  },
+  "services": {
+    "retrain": { "service": "mdi:history" },
+    "reset": { "service": "mdi:restore" },
+    "export_diagnostics": { "service": "mdi:file-export-outline" }
+  }
+}
