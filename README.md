@@ -1,7 +1,5 @@
 # Room Thermal Model
 
-[Italiano](README.it.md)
-
 A generic Home Assistant integration that **learns how each room heats up and cools
 down** from your own history, and tells you **how many minutes of heating a room needs**
 to reach a target temperature, so that automations can start heating at the right time.
