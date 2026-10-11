@@ -62,7 +62,7 @@ Lumped single-capacity (RC) model on a 5-minute grid:
   refits hourly in the executor, bootstrap from recorder (chunked, executor), Store
   persistence (schema version), services `retrain`, `reset`, `export_diagnostics`,
   `diagnostics.py`.
-- Entities per zone (device per zone, stable unique_ids, en + it translations):
+- Entities per zone (device per zone, stable unique_ids, en, it, fr, de translations):
   - `sensor.<zone>_preheat_minutes` (min; attrs target, reachable, outdoor_used, t_infinity)
   - `sensor.<zone>_preheat_start` (timestamp; only with arrival sensor)
   - `binary_sensor.<zone>_preheat_now` (on when now ≥ preheat start)

@@ -1,0 +1,173 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Zone hinzufügen",
+        "description": "Lernt aus dem Verlauf, wie schnell sich diese Zone aufheizt, und gibt an, wie viele Minuten Heizen nötig sind, um die Zieltemperatur zu erreichen.",
+        "data": {
+          "zone_name": "Zonenname",
+          "climate_entity": "Thermostat (climate)",
+          "room_temperature_sensor": "Raumtemperatursensor",
+          "heating_effort_sensor": "Heizleistungssensor",
+          "outdoor_temperature_sensor": "Außentemperatursensor",
+          "weather_entity": "Wetter-Entität",
+          "arrival_sensor": "Ankunftszeitsensor",
+          "target_mode": "Zieltemperatur",
+          "target_temperature": "Festes Ziel"
+        },
+        "data_description": {
+          "zone_name": "Name der Zone (Raum oder Heizzone); wird auch für die Entitäts-IDs verwendet.",
+          "climate_entity": "Climate-Entität der Zone. Verwendet current_temperature, hvac_action, temperature (Ziel) und den HVAC-Modus.",
+          "room_temperature_sensor": "Optional. Ersetzt die current_temperature des Thermostats (z. B. ein Sensor fern vom Heizkörper).",
+          "heating_effort_sensor": "Optional. Heizbedarf in % (0-100), z. B. Ventilöffnung. Ohne ihn wird der Bedarf aus hvac_action abgeleitet (heating = 100 %, idle/off = 0 %).",
+          "outdoor_temperature_sensor": "Optional. Aktuelle Außentemperatur (der Verlauf wird zum Lernen verwendet).",
+          "weather_entity": "Optional. Vorhersage für das Vorheizfenster (stündlich, sonst zweimal täglich, sonst täglich) und Außentemperatur, wenn kein Außensensor gesetzt ist.",
+          "arrival_sensor": "Optional. Zeitstempelsensor mit der erwarteten Ankunft (z. B. sensor.house_next_return_eta von Home Return Predictor): aktiviert die Entitäten Vorheizbeginn und Jetzt vorheizen.",
+          "target_mode": "Ein festes Ziel verwenden oder der Solltemperatur des Thermostats folgen.",
+          "target_temperature": "Ziel im festen Modus (auch Rückfallwert, wenn das Thermostat keine Solltemperatur hat)."
+        }
+      },
+      "reconfigure": {
+        "title": "Zone neu konfigurieren",
+        "description": "Thermostat: {climate}. Entferne die Zone und füge sie erneut hinzu, um ein anderes Thermostat zu verwenden.",
+        "data": {
+          "zone_name": "Zonenname",
+          "room_temperature_sensor": "Raumtemperatursensor",
+          "heating_effort_sensor": "Heizleistungssensor",
+          "outdoor_temperature_sensor": "Außentemperatursensor",
+          "weather_entity": "Wetter-Entität",
+          "arrival_sensor": "Ankunftszeitsensor"
+        },
+        "data_description": {
+          "zone_name": "Name der Zone (Raum oder Heizzone); wird auch für die Entitäts-IDs verwendet.",
+          "room_temperature_sensor": "Optional. Ersetzt die current_temperature des Thermostats (z. B. ein Sensor fern vom Heizkörper).",
+          "heating_effort_sensor": "Optional. Heizbedarf in % (0-100), z. B. Ventilöffnung. Ohne ihn wird der Bedarf aus hvac_action abgeleitet (heating = 100 %, idle/off = 0 %).",
+          "outdoor_temperature_sensor": "Optional. Aktuelle Außentemperatur (der Verlauf wird zum Lernen verwendet).",
+          "weather_entity": "Optional. Vorhersage für das Vorheizfenster (stündlich, sonst zweimal täglich, sonst täglich) und Außentemperatur, wenn kein Außensensor gesetzt ist.",
+          "arrival_sensor": "Optional. Zeitstempelsensor mit der erwarteten Ankunft (z. B. sensor.house_next_return_eta von Home Return Predictor): aktiviert die Entitäten Vorheizbeginn und Jetzt vorheizen."
+        }
+      }
+    },
+    "error": {
+      "name_required": "Gib einen Zonennamen ein."
+    },
+    "abort": {
+      "already_configured": "Dieses Thermostat wird bereits von einer Zone verwendet.",
+      "reconfigure_successful": "Zone aktualisiert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Zonenoptionen",
+        "data": {
+          "target_mode": "Zieltemperatur",
+          "target_temperature": "Festes Ziel",
+          "half_life_days": "Halbwertszeit des Verlaufs",
+          "history_days": "Verlauf zum Lernen",
+          "update_interval_minutes": "Aktualisierungsintervall"
+        },
+        "data_description": {
+          "target_mode": "Ein festes Ziel verwenden oder der Solltemperatur des Thermostats folgen.",
+          "target_temperature": "Ziel im festen Modus (auch Rückfallwert, wenn das Thermostat keine Solltemperatur hat).",
+          "half_life_days": "Ältere Daten zählen nach so vielen Tagen nur noch halb (passt sich den Jahreszeiten an).",
+          "history_days": "Tage des Recorder-Verlaufs, die beim ersten Start und durch die Aktion Neu trainieren geladen werden.",
+          "update_interval_minutes": "Wie oft die Schätzung neu berechnet wird, in Minuten."
+        }
+      }
+    }
+  },
+  "selector": {
+    "target_mode": {
+      "options": {
+        "fixed": "Fester Wert",
+        "climate": "Dem Thermostatziel folgen"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "preheat_now": {
+        "name": "Jetzt vorheizen"
+      }
+    },
+    "sensor": {
+      "preheat_minutes": {
+        "name": "Vorheizminuten"
+      },
+      "preheat_start": {
+        "name": "Vorheizbeginn"
+      },
+      "max_reachable_temperature": {
+        "name": "Maximal erreichbare Temperatur"
+      },
+      "model_maturity": {
+        "name": "Modellreife"
+      },
+      "time_constant": {
+        "name": "Zeitkonstante"
+      },
+      "heating_rate": {
+        "name": "Aufheizrate"
+      },
+      "dead_time": {
+        "name": "Totzeit"
+      }
+    }
+  },
+  "services": {
+    "retrain": {
+      "name": "Neu trainieren",
+      "description": "Lädt den Recorder-Verlauf neu und passt das Modell der ausgewählten Zonen neu an (alle Zonen ohne Ziel).",
+      "fields": {
+        "entity_id": {
+          "name": "Entitäten",
+          "description": "Beliebige Entität der Zone (ihr Thermostat, ein Eingangssensor oder einer ihrer Sensoren). Leer lassen für alle Zonen."
+        },
+        "config_entry_id": {
+          "name": "Zone",
+          "description": "Konfigurationseintrag der Zone. Leer lassen für alle Zonen."
+        }
+      }
+    },
+    "reset": {
+      "name": "Zurücksetzen",
+      "description": "Vergisst alles, was die ausgewählten Zonen gelernt haben (alle Zonen ohne Ziel).",
+      "fields": {
+        "entity_id": {
+          "name": "Entitäten",
+          "description": "Beliebige Entität der Zone (ihr Thermostat, ein Eingangssensor oder einer ihrer Sensoren). Leer lassen für alle Zonen."
+        },
+        "config_entry_id": {
+          "name": "Zone",
+          "description": "Konfigurationseintrag der Zone. Leer lassen für alle Zonen."
+        }
+      }
+    },
+    "export_diagnostics": {
+      "name": "Diagnose exportieren",
+      "description": "Schreibt die Diagnosedaten der ausgewählten Zonen in eine JSON-Datei im Konfigurationsordner und gibt deren Pfad zurück.",
+      "fields": {
+        "entity_id": {
+          "name": "Entitäten",
+          "description": "Beliebige Entität der Zone (ihr Thermostat, ein Eingangssensor oder einer ihrer Sensoren). Leer lassen für alle Zonen."
+        },
+        "config_entry_id": {
+          "name": "Zone",
+          "description": "Konfigurationseintrag der Zone. Leer lassen für alle Zonen."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "Room Thermal Model hat keine geladene Zone."
+    },
+    "unknown_zone": {
+      "message": "{target} gehört zu keiner Room Thermal Model-Zone."
+    },
+    "update_failed": {
+      "message": "Aktualisierung der Zone {zone} fehlgeschlagen: {error}"
+    }
+  }
+}
