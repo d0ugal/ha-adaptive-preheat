@@ -92,9 +92,11 @@ def test_no_outdoor_room_learns_equilibrium(trained):
 
 def test_fit_summary_is_reported(trained):
     s = trained("radiator", 14).last_fit_summary()
-    assert s["status"] == "ok" and s["mode"] == "outdoor"
+    assert s["status"] == "ok"
+    assert s["mode"] == "outdoor"
     assert set(s["criterion"]) == {str(m) for m in range(0, 91, 5)}
-    assert "cooling_tau_h" in s["cross_check"] and "tangent_dead_time_min" in s["cross_check"]
+    assert "cooling_tau_h" in s["cross_check"]
+    assert "tangent_dead_time_min" in s["cross_check"]
 
 
 def test_insufficient_data(run_of):
@@ -140,8 +142,10 @@ def test_cross_checks_on_synthetic_room(trained):
     g = trained("radiator", 14)._grid
     cool = cooling_tau(g)
     dead = tangent_dead_time(g)
-    assert cool is not None and 5 < cool.tau_hours < 25
-    assert dead is not None and 5 < dead.minutes < 60
+    assert cool is not None
+    assert 5 < cool.tau_hours < 25
+    assert dead is not None
+    assert 5 < dead.minutes < 60
 
 
 def test_solve_linear_and_projection():
@@ -153,4 +157,5 @@ def test_solve_linear_and_projection():
     # unconstrained optimum has a < 0 and b < 0 → projected and re-solved
     eye = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
     theta, proj = solve_projected(eye, [-1.0, -2.0, 0.5])
-    assert theta == [A_MIN, B_MIN, 0.5] and set(proj) == {"a", "b"}
+    assert theta == [A_MIN, B_MIN, 0.5]
+    assert set(proj) == {"a", "b"}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -136,7 +137,7 @@ def test_history_forward_fill_and_gaps() -> None:
     samples = reduce_states(inputs, C, [rows], T0 + timedelta(minutes=90))
     times = [s.ts for s in samples]
     assert times == sorted(times)
-    gaps = [(b - a).total_seconds() / 60 for a, b in zip(times, times[1:], strict=False)]
+    gaps = [(b - a).total_seconds() / 60 for a, b in itertools.pairwise(times)]
     assert max(gaps) <= 5.0 + 1e-6
     first = samples[0]
     # The outdoor change 30 s later is coalesced into the first sample.
@@ -146,7 +147,8 @@ def test_history_forward_fill_and_gaps() -> None:
     at_45 = next(s for s in samples if s.ts >= T0 + timedelta(minutes=45))
     assert (at_45.indoor_c, at_45.effort) == (19.0, 0.0)
     gap = [s for s in samples if T0 + timedelta(minutes=60) <= s.ts < T0 + timedelta(minutes=75)]
-    assert gap and all(s.indoor_c is None and s.excluded for s in gap)
+    assert gap
+    assert all(s.indoor_c is None and s.excluded for s in gap)
     assert samples[-1].indoor_c == 18.5
     assert samples[-1].ts <= T0 + timedelta(minutes=90)
 

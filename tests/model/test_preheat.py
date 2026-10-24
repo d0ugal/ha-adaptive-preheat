@@ -61,14 +61,16 @@ def test_no_outdoor_room_predicts_reasonably(trained, run_of):
     rel = sum(abs(e) / t for e, t in errs) / len(errs)
     assert rel < 0.3
     est = m.preheat(now, 17.0, 21.0, 5.0)
-    assert est.outdoor_used_c is None and est.reason["outdoor_source"] == "not_used"
+    assert est.outdoor_used_c is None
+    assert est.reason["outdoor_source"] == "not_used"
 
 
 def test_unreachable_on_very_cold_outdoor(trained, run_of):
     now = run_of("fast_radiator", 14).samples[-1].ts
     m = trained("fast_radiator", 14)
     est = m.preheat(now, 15.0, 21.0, -15.0)
-    assert not est.reachable and est.minutes is None
+    assert not est.reachable
+    assert est.minutes is None
     assert est.max_reachable_c < 21.1
     assert est.reason["status"] == "unreachable"
     assert syn.true_preheat_minutes(syn.fast_radiator_room(), 15.0, 21.0, -15.0) is None
@@ -77,10 +79,12 @@ def test_unreachable_on_very_cold_outdoor(trained, run_of):
 def test_already_at_target_and_not_fitted(trained, run_of):
     now = run_of("radiator", 14).samples[-1].ts
     est = trained("radiator", 14).preheat(now, 21.0, 20.5, 5.0)
-    assert est.minutes == 0.0 and est.reachable
+    assert est.minutes == 0.0
+    assert est.reachable
     fresh = RCThermalModel(ModelConfig())
     est = fresh.preheat(now, 17.0, 21.0, 5.0)
-    assert est.minutes is None and est.reason["status"] == "not_fitted"
+    assert est.minutes is None
+    assert est.reason["status"] == "not_fitted"
     assert fresh.coast(now, 20.0, 60, 5.0) is None
 
 
@@ -125,7 +129,8 @@ def test_preheat_with_forecast(trained, run_of):
 def test_outdoor_fallback_to_model_reference(trained, run_of):
     now = run_of("radiator", 14).samples[-1].ts
     est = trained("radiator", 14).preheat(now, 17.0, 21.0, None)
-    assert est.reachable and est.reason["outdoor_source"] == "model_reference"
+    assert est.reachable
+    assert est.reason["outdoor_source"] == "model_reference"
 
 
 def test_coast_vs_truth(trained, run_of):
@@ -173,10 +178,11 @@ def test_json_round_trip_identical_outputs(trained, run_of):
 
 
 def test_from_dict_tolerates_garbage_and_reset(trained):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="unsupported model state"):
         RCThermalModel.from_dict({"version": 999}, ModelConfig())
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="unsupported model state"):
         RCThermalModel.from_dict("garbage", ModelConfig())  # type: ignore[arg-type]
     m = trained("radiator", 14)
     m.reset()
-    assert m.parameters() is None and m.quality().samples == 0
+    assert m.parameters() is None
+    assert m.quality().samples == 0

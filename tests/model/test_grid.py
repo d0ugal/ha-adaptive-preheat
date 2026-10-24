@@ -65,8 +65,11 @@ def test_grid_dict_round_trip_is_compact():
     g = resample(samples, 5, 15)
     data = json.loads(json.dumps(g.to_dict()))
     g2 = Grid.from_dict(data)
-    assert g2.indoor[0] == 20.12 and g2.outdoor[0] == -1.27 and g2.effort[0] == 0.333
-    assert g2.excluded == g.excluded and g2.start_ts == g.start_ts
+    assert g2.indoor[0] == 20.12
+    assert g2.outdoor[0] == -1.27
+    assert g2.effort[0] == 0.333
+    assert g2.excluded == g.excluded
+    assert g2.start_ts == g.start_ts
 
 
 def test_incremental_equals_batch(run_of):
