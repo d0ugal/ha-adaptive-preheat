@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.setup import async_setup_component
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.room_thermal_model.const import DOMAIN
@@ -20,6 +23,7 @@ from custom_components.room_thermal_model.diagnostics import (
     async_get_config_entry_diagnostics,
 )
 from custom_components.room_thermal_model.rtm_core.base import Sample
+from custom_components.room_thermal_model.rtm_core.synthetic import generate, radiator_room
 
 from .conftest import (
     ARRIVAL,
@@ -55,7 +59,7 @@ async def test_setup_unload_real_model(hass: HomeAssistant) -> None:
     assert state.attributes["target_c"] == 20.5
     for key in ("time_constant", "heating_rate", "dead_time", "max_reachable_temperature"):
         assert hass.states.get(f"sensor.{SLUG}_{key}").state == STATE_UNKNOWN
-    assert hass.states.get(f"sensor.{SLUG}_model_maturity").state not in ("unavailable",)
+    assert hass.states.get(f"sensor.{SLUG}_model_maturity").state != "unavailable"
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
     assert entry.state is ConfigEntryState.NOT_LOADED
@@ -123,8 +127,6 @@ async def test_bootstrap_loads_history(
 ) -> None:
     """First start merges recorder history (replace=False) and fits right away."""
     set_inputs(hass)
-    from datetime import UTC, datetime
-
     history = [Sample(datetime(2026, 1, 1, tzinfo=UTC), 19.0, 5.0, 1.0)]
     no_history.return_value = history
     entry = await setup_entry(hass, make_entry(hass))
@@ -179,15 +181,13 @@ async def test_services(hass: HomeAssistant, fake_model: None, no_history: Any, 
     )
     path = Path(response["path"])
     assert path.parent == tmp_path
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(await hass.async_add_executor_job(path.read_text, "utf-8"))
     assert entry.entry_id in payload["zones"]
     assert payload["zones"][entry.entry_id]["entry"]["data"]["climate_entity"] == CLIMATE
 
 
 async def test_services_not_loaded(hass: HomeAssistant) -> None:
     """Services exist without zones but refuse to run."""
-    from homeassistant.setup import async_setup_component
-
     assert await async_setup_component(hass, DOMAIN, {})
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(DOMAIN, "retrain", {}, blocking=True)
@@ -321,15 +321,6 @@ async def test_remove_entry_deletes_store(
 
 async def test_real_model_end_to_end(hass: HomeAssistant, no_history: Any) -> None:
     """Real RC model bootstrapped from (synthetic) history gives a preheat estimate."""
-    from datetime import timedelta
-
-    from homeassistant.util import dt as dt_util
-
-    from custom_components.room_thermal_model.rtm_core.synthetic import (
-        generate,
-        radiator_room,
-    )
-
     run = await hass.async_add_executor_job(
         lambda: generate(
             radiator_room(), days=10, start=dt_util.utcnow() - timedelta(days=10), sample_minutes=5

@@ -9,7 +9,43 @@ line-length = 100
 target-version = "py313"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+select = [
+    "E", "W",  # pycodestyle
+    "F",       # pyflakes
+    "I",       # isort
+    "UP",      # pyupgrade
+    "B",       # bugbear
+    "SIM",     # simplify
+    "RUF",     # ruff-specific
+    "C4",      # comprehensions
+    "PIE",     # misc idioms
+    "PT",      # pytest style
+    "PERF",    # perflint
+    "RET",     # return statements
+    "ASYNC",   # blocking calls in async code
+    "ARG",     # unused arguments
+    "S",       # bandit
+    "T20",     # stray print
+    "FURB",    # refurb
+    "PLC0415", # imports outside top level
+]
+ignore = [
+    "E501",    # line length is enforced by the formatter
+    "S101",    # assert is the point of tests and is used for type narrowing
+    "RUF002",  # docstrings deliberately use the degree sign, middle dot and minus sign
+    "RUF003",  # comments deliberately use the degree sign, middle dot and minus sign
+    "RUF012",  # mutable class attributes are idiomatic in HA entities
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["T20"]  # command line tools print their output
+"tests/**" = [
+    "ARG001",  # fixtures requested for their side effects (fake_model, freezer)
+    "ARG002",  # test doubles mirror the signature of the object they replace
+]
+"custom_components/room_thermal_model/rtm_core/synthetic.py" = [
+    "S311",  # seeded random.Random generates reproducible synthetic data, not secrets
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["custom_components", "rtm_core"]

@@ -197,9 +197,9 @@ def generate(
     """Simulate ``days`` of the room and produce raw samples every ``sample_minutes``."""
     rng = random.Random(spec.seed)
     ev_rng = random.Random(spec.seed * 31 + 5)
-    n = int(round(days * 1440))
+    n = round(days * 1440)
     outdoor = OutdoorProfile(spec, days, start)
-    d = int(round(spec.dead_time_minutes))
+    d = round(spec.dead_time_minutes)
 
     window_at: dict[int, tuple[int, float]] = {}
     win_list: list[tuple[datetime, float]] = []

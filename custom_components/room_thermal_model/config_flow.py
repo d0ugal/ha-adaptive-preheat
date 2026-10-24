@@ -175,7 +175,7 @@ class RoomThermalModelConfigFlow(ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: Any) -> RoomThermalModelOptionsFlow:
+    def async_get_options_flow(config_entry: Any) -> RoomThermalModelOptionsFlow:  # noqa: ARG004 (HA signature)
         """Return the options flow."""
         return RoomThermalModelOptionsFlow()
 

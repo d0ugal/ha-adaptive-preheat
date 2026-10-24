@@ -108,7 +108,8 @@ def _fetch_states(
     hass: HomeAssistant, entity_ids: list[str], start: datetime, end: datetime
 ) -> dict[str, list[State]]:
     """Read every state row (attributes included) of the inputs. Recorder executor."""
-    from homeassistant.components.recorder import history
+    # Deferred: the recorder is only imported when it is loaded (see async_load_zone_history).
+    from homeassistant.components.recorder import history  # noqa: PLC0415
 
     result = history.get_significant_states(
         hass,
@@ -152,8 +153,9 @@ async def async_load_zone_history(
     if "recorder" not in hass.config.components:
         _LOGGER.debug("Recorder not loaded, skipping history bootstrap for %s", inputs.climate)
         return []
-    from homeassistant.components.recorder import get_instance
-    from sqlalchemy.exc import SQLAlchemyError
+    # Deferred: the recorder (and sqlalchemy with it) may not be loaded.
+    from homeassistant.components.recorder import get_instance  # noqa: PLC0415
+    from sqlalchemy.exc import SQLAlchemyError  # noqa: PLC0415
 
     end = dt_util.utcnow()
     start = end - timedelta(days=days)

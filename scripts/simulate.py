@@ -25,8 +25,8 @@ sys.path.insert(
     0, str(Path(__file__).resolve().parent.parent / "custom_components" / "room_thermal_model")
 )
 
-from rtm_core import ModelConfig, RCThermalModel  # noqa: E402
-from rtm_core import synthetic as syn  # noqa: E402
+from rtm_core import ModelConfig, RCThermalModel
+from rtm_core import synthetic as syn
 
 REF_START_C = 17.0
 REF_TARGET_C = 21.0

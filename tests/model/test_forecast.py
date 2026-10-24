@@ -51,7 +51,7 @@ def test_solve_duration_fixed_point_matches_brute_force():
     def outdoor_for(m: float) -> float:
         return 0.0 + 2.0 * (m / 60.0) / 2.0  # mean of a ramp over [0, m]
 
-    d, tout, info = solve_duration(minutes_for, outdoor_for)
+    d, tout, _info = solve_duration(minutes_for, outdoor_for)
     assert abs(d - minutes_for(outdoor_for(d))) < 0.6
     # exact: d = 120 − 5·d/60 → d = 120 / (1 + 5/60)
     assert d == pytest.approx(120 / (1 + 5 / 60), abs=0.6)
@@ -72,5 +72,6 @@ def test_solve_duration_bisection_when_fixed_point_oscillates():
 
 
 def test_solve_duration_unreachable():
-    d, tout, info = solve_duration(lambda t: None, lambda m: -20.0)
-    assert d is None and tout == -20.0
+    d, tout, _info = solve_duration(lambda _t: None, lambda _m: -20.0)
+    assert d is None
+    assert tout == -20.0

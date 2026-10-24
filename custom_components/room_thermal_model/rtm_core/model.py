@@ -186,7 +186,7 @@ class RCThermalModel(ThermalModel):
         bad = bad_rows(grid, cfg.max_step_delta_k)
         heat_h, cool_h = experience_hours(grid, bad)
         step = cfg.step_minutes
-        dmax = int(round(cfg.max_dead_time_minutes / step))
+        dmax = round(cfg.max_dead_time_minutes / step)
 
         # cross-checks (Ecronika/ha-preheat): fallbacks when excitation is weak
         cool = cooling_tau(grid, skip_minutes=max(30.0, (res.d_steps + 1) * step))

@@ -82,8 +82,8 @@ def forecast_rmse(
 ) -> tuple[float | None, float | None, int]:
     """60-min-ahead open-loop RMSE vs persistence for windows starting in [k_start, k_end)."""
     step = grid.step_minutes
-    h = int(round(HORIZON_MIN / step))
-    stride = max(1, int(round(STRIDE_MIN / step)))
+    h = round(HORIZON_MIN / step)
+    stride = max(1, round(STRIDE_MIN / step))
     dt_h = step / 60.0
     ind, out, eff = grid.indoor, grid.outdoor, grid.effort
     n = len(ind)

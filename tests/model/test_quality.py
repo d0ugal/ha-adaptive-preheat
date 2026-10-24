@@ -13,9 +13,11 @@ from rtm_core.quality import bad_rows, data_factor, heat_up_episodes, maturity, 
 @pytest.mark.parametrize("name", ["radiator", "fast_radiator", "underfloor", "no_outdoor"])
 def test_rmse_beats_persistence_after_training(trained, name):
     q = trained(name, 14, True).quality()
-    assert q.rmse_c is not None and q.baseline_rmse_c is not None
+    assert q.rmse_c is not None
+    assert q.baseline_rmse_c is not None
     assert q.rmse_c < q.baseline_rmse_c
-    assert q.heating_hours > 20 and q.cooling_hours > 40
+    assert q.heating_hours > 20
+    assert q.cooling_hours > 40
     assert 0.0 <= q.maturity <= 1.0
 
 
@@ -28,7 +30,8 @@ def test_duration_mae_on_heat_up_episodes(trained):
 def test_maturity_rises_with_days(trained):
     mats = [trained("radiator", d, True).quality().maturity for d in (1, 3, 14)]
     assert mats[0] < mats[1] <= mats[2]
-    assert mats[0] < 0.5 and mats[2] > 0.8
+    assert mats[0] < 0.5
+    assert mats[2] > 0.8
 
 
 def test_maturity_formula():
@@ -52,7 +55,9 @@ def test_episode_detection(trained):
 
 def test_quality_before_fit():
     q = RCThermalModel(ModelConfig()).quality()
-    assert q.maturity == 0.0 and q.samples == 0 and q.rmse_c is None
+    assert q.maturity == 0.0
+    assert q.samples == 0
+    assert q.rmse_c is None
 
 
 def test_fit_time_30_days(run_of):
@@ -64,6 +69,6 @@ def test_fit_time_30_days(run_of):
     t0 = time.perf_counter()
     s = m.fit(run.samples[-1].ts)
     elapsed = time.perf_counter() - t0
-    print(f"\n30-day fit: {elapsed:.3f} s ({s['rows']} rows)")
+    print(f"\n30-day fit: {elapsed:.3f} s ({s['rows']} rows)")  # noqa: T201 (timing is the point)
     assert s["status"] == "ok"
     assert elapsed < 2.0

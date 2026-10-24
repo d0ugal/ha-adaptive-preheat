@@ -55,7 +55,7 @@ def test_gap_breaks_series():
 
 
 def test_excluded_marks_rows():
-    samples = [Sample(at(m), 20.0, None, 0.0, excluded=(10 <= m < 20)) for m in range(0, 41)]
+    samples = [Sample(at(m), 20.0, None, 0.0, excluded=(10 <= m < 20)) for m in range(41)]
     g = resample(samples, 5, 15)
     assert g.excluded[:5] == [False, False, True, True, False]
 
@@ -65,8 +65,11 @@ def test_grid_dict_round_trip_is_compact():
     g = resample(samples, 5, 15)
     data = json.loads(json.dumps(g.to_dict()))
     g2 = Grid.from_dict(data)
-    assert g2.indoor[0] == 20.12 and g2.outdoor[0] == -1.27 and g2.effort[0] == 0.333
-    assert g2.excluded == g.excluded and g2.start_ts == g.start_ts
+    assert g2.indoor[0] == 20.12
+    assert g2.outdoor[0] == -1.27
+    assert g2.effort[0] == 0.333
+    assert g2.excluded == g.excluded
+    assert g2.start_ts == g.start_ts
 
 
 def test_incremental_equals_batch(run_of):
@@ -101,7 +104,7 @@ def test_merge_history_and_trim(run_of):
 
 def test_old_live_samples_are_ignored():
     m = RCThermalModel(ModelConfig())
-    for k in range(0, 60):
+    for k in range(60):
         m.add_sample(Sample(at(k), 20.0, 5.0, 0.0))
     n = len(m._grid)
     m.add_sample(Sample(at(-600), 30.0, 5.0, 1.0))

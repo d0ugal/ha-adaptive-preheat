@@ -43,8 +43,8 @@ class RTMStore(Store[StoredData]):
 
     async def _async_migrate_func(
         self,
-        old_major_version: int,
-        old_minor_version: int,
+        old_major_version: int,  # noqa: ARG002 (Store signature, v1 is the only version)
+        old_minor_version: int,  # noqa: ARG002
         old_data: StoredData,
     ) -> StoredData:
         """Migrate stored data to the current version.

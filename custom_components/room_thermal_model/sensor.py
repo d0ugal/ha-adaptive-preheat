@@ -37,7 +37,7 @@ def _round(value: float | None, digits: int = 2) -> float | None:
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
+    hass: HomeAssistant,  # noqa: ARG001 (HA platform signature)
     entry: RTMConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
@@ -208,7 +208,8 @@ class TimeConstantSensor(RTMParameterSensor):
     _attr_suggested_display_precision = 1
 
     def _value(self) -> float | None:
-        assert self.zone is not None and self.zone.parameters is not None
+        assert self.zone is not None
+        assert self.zone.parameters is not None
         return self.zone.parameters.time_constant_hours
 
 
@@ -220,7 +221,8 @@ class HeatingRateSensor(RTMParameterSensor):
     _attr_suggested_display_precision = 2
 
     def _value(self) -> float | None:
-        assert self.zone is not None and self.zone.parameters is not None
+        assert self.zone is not None
+        assert self.zone.parameters is not None
         return self.zone.parameters.heating_rate_k_per_h
 
 
@@ -232,5 +234,6 @@ class DeadTimeSensor(RTMParameterSensor):
     _attr_suggested_display_precision = 0
 
     def _value(self) -> float | None:
-        assert self.zone is not None and self.zone.parameters is not None
+        assert self.zone is not None
+        assert self.zone.parameters is not None
         return self.zone.parameters.dead_time_minutes

@@ -156,7 +156,7 @@ def build_dataset(
 def solve_linear(m: list[list[float]], v: list[float]) -> list[float] | None:
     """Gaussian elimination with partial pivoting (small dense systems)."""
     n = len(v)
-    a = [row[:] + [v[i]] for i, row in enumerate(m)]
+    a = [[*row, v[i]] for i, row in enumerate(m)]
     for col in range(n):
         piv = max(range(col, n), key=lambda r: abs(a[r][col]))
         if abs(a[piv][col]) < 1e-12:
@@ -347,8 +347,8 @@ def fit_rc(
     if len(ds) < 12:
         return None
     if d_candidates is None:
-        dmax = int(round(config.max_dead_time_minutes / config.step_minutes))
-        d_candidates = list(range(0, max(dmax, 0) + 1))
+        dmax = round(config.max_dead_time_minutes / config.step_minutes)
+        d_candidates = list(range(max(dmax, 0) + 1))
     prob = _Problem(ds, effort, prior or Prior(), fixed)
     cands = [d for d in d_candidates if len(prob.rows(d)[0]) >= 12]
     if not cands:
