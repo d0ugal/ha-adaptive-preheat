@@ -55,7 +55,7 @@ def cooling_segments(grid: Grid, skip_minutes: float = 30.0) -> list[tuple[int, 
     The first ``skip_minutes`` after heating stops are skipped (heat still arriving).
     """
     step = grid.step_minutes
-    skip = int(math.ceil(skip_minutes / step))
+    skip = math.ceil(skip_minutes / step)
     segs: list[tuple[int, int]] = []
     k0: int | None = None
     n = len(grid)

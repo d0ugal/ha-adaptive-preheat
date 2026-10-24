@@ -212,7 +212,7 @@ def resample(
         start_ts = ceil_ts(times[0], step_s)
     if end_ts is None:
         end_ts = floor_ts(times[-1], step_s)
-    n = int(round((end_ts - start_ts) / step_s))
+    n = round((end_ts - start_ts) / step_s)
     grid.start_ts = start_ts
     if n <= 0:
         return grid
