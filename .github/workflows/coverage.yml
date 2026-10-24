@@ -1,0 +1,43 @@
+name: Coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements_test.txt
+      - run: pip install -r requirements_test.txt pytest-cov
+      # The threshold (fail_under) lives in pyproject.toml; pytest-cov fails the run below it.
+      - name: Run the test suite with branch coverage
+        run: pytest -q --cov --cov-report=xml --cov-report=term-missing
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f .coverage ]; then
+            {
+              echo "## Coverage"
+              echo
+              coverage report --format=markdown --fail-under=0
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: warn
