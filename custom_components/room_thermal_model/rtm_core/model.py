@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import bisect
 import time
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import asdict
 from datetime import datetime
 from typing import Any
@@ -292,7 +292,7 @@ class RCThermalModel(ThermalModel):
 
     def _outdoor_function(
         self, now: datetime, outdoor_c: float | None, forecast: Sequence[ForecastPoint]
-    ) -> tuple[Any, str]:
+    ) -> tuple[Callable[[float], float] | None, str]:
         """(minutes → mean outdoor, source) or (None, reason)."""
         p = self._params
         assert p is not None
@@ -309,7 +309,14 @@ class RCThermalModel(ThermalModel):
         else:
             return None, "no_outdoor"
         t0 = ts_of(now)
-        return (lambda m: mean_over(pts, t0, t0 + m * 60.0)), source
+        curve = pts
+
+        def mean_outdoor(m: float) -> float:
+            value = mean_over(curve, t0, t0 + m * 60.0)
+            assert value is not None  # curve is non-empty on every path that reaches here
+            return value
+
+        return mean_outdoor, source
 
     def preheat(
         self,
@@ -413,7 +420,8 @@ class RCThermalModel(ThermalModel):
 
     @classmethod
     def from_dict(cls, data: dict[str, Any], config: ModelConfig) -> RCThermalModel:
-        if not isinstance(data, dict) or data.get("version") != STATE_VERSION:
+        # Persisted JSON is untrusted at runtime, so the isinstance check is deliberate.
+        if not isinstance(data, dict) or data.get("version") != STATE_VERSION:  # pyright: ignore[reportUnnecessaryIsInstance]
             raise ValueError("unsupported model state")
         model = cls(config)
         params = data.get("params")

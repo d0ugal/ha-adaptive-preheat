@@ -93,8 +93,12 @@ def forecast_rmse(
     k = max(k_start, p.d_steps)
     while k < k_end and k + h < n:
         ok = not any(bad[k : k + h + 1])
-        if ok:
-            t = ind[k]
+        t = ind[k]
+        obs = ind[k + h]
+        if t is None or obs is None:
+            ok = False
+        if ok and t is not None and obs is not None:
+            t_start = t
             for j in range(k, k + h):
                 u = eff[j - p.d_steps]
                 if u is None:
@@ -107,11 +111,10 @@ def forecast_rmse(
                         break
                 else:
                     to = 0.0
-                t = step_temperature(t, u, to, p.a, p.b, p.c, dt_h)  # type: ignore[arg-type]
+                t = step_temperature(t, u, to, p.a, p.b, p.c, dt_h)
             if ok:
-                obs = ind[k + h]
-                se += (t - obs) ** 2  # type: ignore[operator]
-                se0 += (ind[k] - obs) ** 2  # type: ignore[operator]
+                se += (t - obs) ** 2
+                se0 += (t_start - obs) ** 2
                 cnt += 1
         k += stride if ok else 1
     if not cnt:
@@ -153,7 +156,9 @@ def heat_up_episodes(
             continue
         t0, t_end = ind[k], ind[j]
         if t0 is not None and t_end is not None and t_end - t0 >= EPISODE_MIN_RISE:
-            reach = next(i for i in range(k, j + 1) if ind[i] >= t_end - 1e-9)  # type: ignore[operator]
+            reach = next(
+                i for i in range(k, j + 1) if (v := ind[i]) is not None and v >= t_end - 1e-9
+            )
             eps.append((k, j, reach))
         k = j + 1
     return eps
@@ -172,6 +177,8 @@ def episode_errors(grid: Grid, p: Params, episodes: list[tuple[int, int, int]]) 
         else:
             tout = 0.0
         t0, t_end = grid.indoor[k0], grid.indoor[k1]
+        if t0 is None or t_end is None:
+            continue
         pred, _ = preheat_minutes(
             t0,
             t_end,
@@ -179,7 +186,7 @@ def episode_errors(grid: Grid, p: Params, episodes: list[tuple[int, int, int]]) 
             p.a,
             p.b,
             p.c,
-            p.d_steps * step,  # type: ignore[arg-type]
+            p.d_steps * step,
         )
         if pred is None:
             continue

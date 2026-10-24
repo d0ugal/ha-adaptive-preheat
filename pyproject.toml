@@ -61,3 +61,16 @@ dev = [
     "pytest-homeassistant-custom-component",
     "ruff",
 ]
+
+[tool.pyright]
+pythonVersion = "3.13"
+include = ["custom_components"]
+typeCheckingMode = "basic"
+reportMissingImports = "warning"
+reportMissingModuleSource = "none"
+# Home Assistant is not installed for type checking, so its base classes are unresolved and
+# class keyword arguments such as `domain=` cannot be validated.
+reportGeneralTypeIssues = "none"
+reportCallIssue = "none"
+# rtm_core is pure Python (no Home Assistant imports), so hold it to the strict standard.
+strict = ["custom_components/room_thermal_model/rtm_core"]

@@ -76,7 +76,7 @@ class PreheatEstimate:
     start_c: float | None
     outdoor_used_c: float | None  # effective (forecast-averaged) outdoor temperature
     max_reachable_c: float | None  # T_infinity at full effort
-    reason: dict[str, Any] = field(default_factory=dict)
+    reason: dict[str, Any] = field(default_factory=dict[str, Any])
 
 
 @dataclass

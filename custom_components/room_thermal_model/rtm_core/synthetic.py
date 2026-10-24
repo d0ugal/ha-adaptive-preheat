@@ -157,7 +157,9 @@ class SyntheticRun:
     outdoor: list[float]  # per minute (true)
     effort: list[float]  # per minute
     outdoor_profile: OutdoorProfile
-    windows: list[tuple[datetime, float]] = field(default_factory=list)  # (start, drop K)
+    windows: list[tuple[datetime, float]] = field(
+        default_factory=list[tuple[datetime, float]]
+    )  # (start, drop K)
 
     def minute(self, ts: datetime) -> int:
         return int((ts - self.start).total_seconds() // 60)
@@ -287,7 +289,7 @@ def true_preheat_minutes(
     """Simulated truth: idle before t=0, full effort from t=0 (heat arrives after d)."""
     if start_c >= target_c:
         return 0.0
-    f = tout if callable(tout) else (lambda _t, v=float(tout): v)
+    f = tout if callable(tout) else _constant(float(tout))
     temp = start_c
     t = 0.0
     decay = math.exp(-spec.b * dt_minutes / 60.0)
@@ -302,6 +304,10 @@ def true_preheat_minutes(
     return None
 
 
+def _constant(value: float) -> Callable[[float], float]:
+    return lambda _t: value
+
+
 def true_coast(
     spec: RoomSpec,
     start_c: float,
@@ -310,7 +316,7 @@ def true_coast(
     dt_minutes: float = 0.25,
 ) -> float:
     """Simulated truth for ``minutes`` without heating."""
-    f = tout if callable(tout) else (lambda _t, v=float(tout): v)
+    f = tout if callable(tout) else _constant(float(tout))
     temp = start_c
     t = 0.0
     while t < minutes - 1e-9:

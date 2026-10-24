@@ -27,7 +27,7 @@ def outdoor_curve(
 ) -> list[tuple[float, float]]:
     """Sorted (epoch s, °C) breakpoints; ``current`` replaces anything at/before start."""
     t0 = ts_of(start)
-    pts = sorted((ts_of(p.ts), float(p.outdoor_c)) for p in points if p.outdoor_c is not None)
+    pts = sorted((ts_of(p.ts), float(p.outdoor_c)) for p in points)
     if current is not None:
         pts = [(t0, float(current))] + [(t, v) for t, v in pts if t > t0]
     return pts

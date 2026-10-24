@@ -77,9 +77,9 @@ class FitResult:
     scale: float  # robust residual scale (K/h)
     rms_residual: float  # weighted RMS residual (K/h)
     downweighted_fraction: float
-    criterion: dict[int, float] = field(default_factory=dict)
+    criterion: dict[int, float] = field(default_factory=dict[int, float])
     flatness: float = 0.0  # (J_max − J_min)/J_min over the dead-time candidates
-    projected: list[str] = field(default_factory=list)
+    projected: list[str] = field(default_factory=list[str])
 
     def as_dict(self, step_minutes: float) -> dict[str, Any]:
         return {
@@ -227,7 +227,7 @@ def _normal(
     suy = sum(map(mul, wu, y))
     sxy = sum(map(mul, wx, y))
     sy = sum(map(mul, w, y))
-    m = [[suu, -sux, su], [-sux, sxx, -sx], [su, -sx, s1]]
+    m: list[list[float]] = [[suu, -sux, su], [-sux, sxx, -sx], [su, -sx, s1]]
     return m, [suy, -sxy, sy]
 
 
