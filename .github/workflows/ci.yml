@@ -6,31 +6,46 @@ on:
     tags: ["v*"]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  UV_MANAGED_PYTHON: "1"
+  UV_PYTHON: "3.13"
+
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/ruff-action@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          args: "check"
-      - uses: astral-sh/ruff-action@v3
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
-          args: "format --check --diff"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff check
+      - run: uv run ruff format --check --diff
 
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          python-version: "3.13"
-          cache: pip
-          cache-dependency-path: requirements_test.txt
-      - run: pip install -r requirements_test.txt
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: true
+      - run: uv sync --locked
       - name: Pure model tests (no Home Assistant)
-        run: pytest tests/model -q
+        run: uv run pytest tests/model -q
       - name: Integration tests
-        run: pytest tests/integration -q
+        run: uv run pytest tests/integration -q
       - name: Simulation smoke test
-        run: python scripts/simulate.py --days 14
+        run: uv run python scripts/simulate.py --days 14
