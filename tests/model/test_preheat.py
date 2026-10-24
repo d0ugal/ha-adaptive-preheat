@@ -109,7 +109,7 @@ def test_preheat_with_forecast(trained, run_of):
     m = trained("radiator", 14)
     spec = syn.radiator_room()
     # front arriving: −3 °C/h for 3 hours
-    fc = [ForecastPoint(now + timedelta(hours=h), 8.0 - 3.0 * h) for h in range(0, 4)]
+    fc = [ForecastPoint(now + timedelta(hours=h), 8.0 - 3.0 * h) for h in range(4)]
     est = m.preheat(now, 16.0, 21.0, 8.0, fc)
     flat = m.preheat(now, 16.0, 21.0, 8.0)
     assert est.minutes > flat.minutes
