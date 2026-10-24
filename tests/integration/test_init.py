@@ -76,8 +76,11 @@ async def test_entity_ids_without_arrival(hass: HomeAssistant, fake_model: None)
     for entity in entities:
         is_diag = entity.unique_id.removeprefix(f"{entry.entry_id}_") in diag
         assert (entity.entity_category is not None) == is_diag
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, entry.entry_id)})
-    assert device is not None
+    # async_get_device is deprecated (an error on recent HA); this works on all supported versions.
+    devices = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
+    assert len(devices) == 1
+    device = devices[0]
+    assert (DOMAIN, entry.entry_id) in device.identifiers
     assert device.name == ZONE
     assert device.entry_type is dr.DeviceEntryType.SERVICE
     assert hass.states.get(f"sensor.{SLUG}_preheat_start") is None
