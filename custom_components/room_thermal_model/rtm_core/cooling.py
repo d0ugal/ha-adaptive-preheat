@@ -89,10 +89,12 @@ def cooling_tau(grid: Grid, skip_minutes: float = 30.0) -> CoolingEstimate | Non
         npts = k1 - k0
         if npts < MIN_POINTS or (npts - 1) * step < MIN_SEGMENT_MINUTES:
             continue
-        tin = [grid.indoor[k] for k in range(k0, k1)]
-        tout = [grid.outdoor[k] for k in range(k0, k1)]
-        mean_out = sum(tout) / npts  # type: ignore[arg-type]
-        diffs = [t - mean_out for t in tin]  # type: ignore[operator]
+        tin = [v for v in grid.indoor[k0:k1] if v is not None]
+        tout = [v for v in grid.outdoor[k0:k1] if v is not None]
+        if len(tin) != npts or len(tout) != npts:
+            continue
+        mean_out = sum(tout) / npts
+        diffs = [t - mean_out for t in tin]
         if min(diffs) <= MIN_DELTA_K:
             continue
         xs = [i * step / 60.0 for i in range(npts)]

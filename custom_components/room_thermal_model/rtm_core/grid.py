@@ -48,10 +48,10 @@ class Grid:
 
     step_minutes: float
     start_ts: float | None = None
-    indoor: list[float | None] = field(default_factory=list)
-    outdoor: list[float | None] = field(default_factory=list)
-    effort: list[float | None] = field(default_factory=list)
-    excluded: list[bool] = field(default_factory=list)
+    indoor: list[float | None] = field(default_factory=list[float | None])
+    outdoor: list[float | None] = field(default_factory=list[float | None])
+    effort: list[float | None] = field(default_factory=list[float | None])
+    excluded: list[bool] = field(default_factory=list[bool])
 
     @property
     def step_s(self) -> float:
@@ -128,7 +128,9 @@ class Grid:
         out = Grid(self.step_minutes, start)
         out._pad(n)
         for src in (other, self):  # self last: wins
-            off = round((src.start_ts - start) / step)  # type: ignore[operator]
+            if src.start_ts is None:
+                continue
+            off = round((src.start_ts - start) / step)
             for i in range(len(src)):
                 j = off + i
                 if src.indoor[i] is None and out.indoor[j] is not None:
@@ -152,11 +154,12 @@ class Grid:
     def snapshot(self) -> Grid:
         """Consistent copy, safe against rows appended/trimmed concurrently."""
         start = self.start_ts
-        cols = (list(self.indoor), list(self.outdoor), list(self.effort), list(self.excluded))
-        n = min(len(c) for c in cols)
+        indoor, outdoor, effort = list(self.indoor), list(self.outdoor), list(self.effort)
+        excluded = list(self.excluded)
+        n = min(len(indoor), len(outdoor), len(effort), len(excluded))
         if start is not None and self.start_ts != start:  # trimmed while copying: retry
             return self.snapshot()
-        return Grid(self.step_minutes, start, *(c[:n] for c in cols))
+        return Grid(self.step_minutes, start, indoor[:n], outdoor[:n], effort[:n], excluded[:n])
 
     # -- compact JSON form ------------------------------------------------------------
     def to_dict(self) -> dict[str, Any]:
