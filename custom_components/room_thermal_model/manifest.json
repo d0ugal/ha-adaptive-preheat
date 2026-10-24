@@ -1,8 +1,13 @@
 {
   "domain": "room_thermal_model",
   "name": "Room Thermal Model",
-  "after_dependencies": ["recorder", "weather"],
-  "codeowners": ["@giogandola98"],
+  "after_dependencies": [
+    "recorder",
+    "weather"
+  ],
+  "codeowners": [
+    "@giogandola98"
+  ],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/giogandola98/ha-room-thermal-model",
@@ -10,5 +15,5 @@
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/giogandola98/ha-room-thermal-model/issues",
   "requirements": [],
-  "version": "0.1.0"
+  "version": "0.1.1"
 }
