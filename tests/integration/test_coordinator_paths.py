@@ -131,7 +131,8 @@ async def test_unload_persists_the_model(hass: HomeAssistant, fake_model: None) 
         await coordinator.async_unload()
     assert coordinator._unloading
     assert save.await_args.args[0]["model"] == coordinator.snapshot
-    assert not coordinator._unsubs and not coordinator._unsub_timers
+    assert not coordinator._unsubs
+    assert not coordinator._unsub_timers
 
 
 async def test_snapshot_is_skipped_when_nothing_changed(
@@ -166,7 +167,8 @@ async def test_failing_forecast_does_not_stop_the_zone(
     ):
         await coordinator.async_refresh()
     assert coordinator.last_update_success
-    assert coordinator.data.usable and not coordinator.data.forecast_used
+    assert coordinator.data.usable
+    assert not coordinator.data.forecast_used
     assert f"Forecast of {WEATHER} failed" in caplog.text
 
 
@@ -185,7 +187,8 @@ async def test_failing_fit_is_logged_and_retried_later(
     assert "Fit of Living Room failed" in caplog.text
     # the model still wants a fit: the next poll tries again and succeeds
     await coordinator.async_refresh()
-    assert coordinator.last_fit is not None and coordinator.data.usable
+    assert coordinator.last_fit is not None
+    assert coordinator.data.usable
 
 
 async def test_model_error_while_estimating_fails_the_update(
@@ -242,7 +245,8 @@ async def test_failing_history_load_still_bootstraps(
         await setup_entry(hass, entry)
     coordinator: RTMCoordinator = entry.runtime_data
     assert "Loading history of Living Room failed" in caplog.text
-    assert coordinator.bootstrapped and not coordinator.bootstrapping
+    assert coordinator.bootstrapped
+    assert not coordinator.bootstrapping
     assert coordinator.model.history == []
     assert coordinator.model.fits == 1  # forced because history was returned
 

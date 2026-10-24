@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -103,15 +104,18 @@ def test_no_grid_fill_before_the_climate_has_a_state() -> None:
     """Only an outdoor row so far: one (excluded) sample, no carried grid."""
     samples = reduce_states(INPUTS, C, [{OUTDOOR: [outdoor(0, "3.0")]}], at(30))
     assert len(samples) == 1
-    assert samples[0].excluded and samples[0].outdoor_c == 3.0
+    assert samples[0].excluded
+    assert samples[0].outdoor_c == 3.0
 
 
 def test_unavailable_climate_marks_gap_samples_excluded() -> None:
     rows = {CLIMATE: [climate(0), climate(10, state="unavailable"), climate(20, 19.0)]}
     samples = {s.ts: s for s in reduce_states(INPUTS, C, [rows], at(30))}
     assert not samples[at(5)].excluded
-    assert samples[at(10)].excluded and samples[at(15)].excluded
-    assert samples[at(20)].indoor_c == 19.0 and not samples[at(20)].excluded
+    assert samples[at(10)].excluded
+    assert samples[at(15)].excluded
+    assert samples[at(20)].indoor_c == 19.0
+    assert not samples[at(20)].excluded
 
 
 def test_reducer_state_carries_across_windows_without_gaps() -> None:
@@ -122,8 +126,9 @@ def test_reducer_state_carries_across_windows_without_gaps() -> None:
     samples = reducer.finish(at(40))
     times = [s.ts for s in samples]
     assert times == sorted(times)
-    assert max(b - a for a, b in zip(times, times[1:], strict=False)) <= timedelta(minutes=5)
-    assert samples[-1].indoor_c == 18.0 and samples[-1].outdoor_c == 2.0
+    assert max(b - a for a, b in itertools.pairwise(times)) <= timedelta(minutes=5)
+    assert samples[-1].indoor_c == 18.0
+    assert samples[-1].outdoor_c == 2.0
     assert samples is reducer.samples
 
 
@@ -134,8 +139,10 @@ def test_rows_within_a_window_are_merged_chronologically() -> None:
         CLIMATE: [climate(0, 18.0), climate(20, 19.0)],
     }
     samples = {s.ts: s for s in reduce_states(INPUTS, C, [rows], at(25))}
-    assert samples[at(10)].outdoor_c == 5.0 and samples[at(10)].indoor_c == 18.0
-    assert samples[at(20)].indoor_c == 19.0 and samples[at(20)].outdoor_c == 5.0
+    assert samples[at(10)].outdoor_c == 5.0
+    assert samples[at(10)].indoor_c == 18.0
+    assert samples[at(20)].indoor_c == 19.0
+    assert samples[at(20)].outdoor_c == 5.0
 
 
 # ---------------------------------------------------------------- recorder access
@@ -186,10 +193,11 @@ def test_load_chunked_queries_contiguous_windows_up_to_end(hass: HomeAssistant) 
         (start + 2 * week, end),
     ]
     times = [s.ts for s in samples]
-    assert times == sorted(times) and len(set(times)) == len(times)
+    assert times == sorted(times)
+    assert len(set(times)) == len(times)
     assert times[0] == start
     assert end - times[-1] <= timedelta(minutes=5)
-    assert max(b - a for a, b in zip(times, times[1:], strict=False)) <= timedelta(minutes=5)
+    assert max(b - a for a, b in itertools.pairwise(times)) <= timedelta(minutes=5)
 
 
 def test_load_chunked_short_range_is_a_single_query(hass: HomeAssistant) -> None:

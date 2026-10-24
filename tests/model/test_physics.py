@@ -103,7 +103,8 @@ def test_preheat_minutes_matches_simulation(a, b, c, tout, t0, target, dead):
     minutes, info = physics.preheat_minutes(t0, target, tout, a, b, c, dead)
     truth = time_to_reach(t0, target, tout, a, b, c, dead, effort=1.0)
     if minutes is None:
-        assert info["unreachable"] and truth is None
+        assert info["unreachable"]
+        assert truth is None
         return
     assert truth is not None
     assert minutes == pytest.approx(truth, abs=0.1)
@@ -130,10 +131,12 @@ def test_preheat_room_drifts_up_to_target_during_dead_time():
 
 def test_preheat_already_at_target_and_unreachable():
     minutes, info = physics.preheat_minutes(21.0, 20.0, 5.0, 3.0, 0.2, 0.0, 30.0)
-    assert minutes == 0.0 and info["already_at_target"]
+    assert minutes == 0.0
+    assert info["already_at_target"]
     # full-effort equilibrium is 5 + 1/0.2 = 10 degC: 20 is out of reach
     minutes, info = physics.preheat_minutes(15.0, 20.0, 5.0, 1.0, 0.2, 0.0, 30.0)
-    assert minutes is None and info["unreachable"]
+    assert minutes is None
+    assert info["unreachable"]
     # an equilibrium within the margin of the target counts as unreachable too
     teq = physics.equilibrium(5.0, 3.0, 0.2, 0.0)
     target = teq - physics.REACH_MARGIN_K / 2
