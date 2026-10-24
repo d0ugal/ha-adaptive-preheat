@@ -17,7 +17,7 @@ PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
+    hass: HomeAssistant,  # noqa: ARG001 (HA platform signature)
     entry: RTMConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:

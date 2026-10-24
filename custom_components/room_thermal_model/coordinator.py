@@ -329,7 +329,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
         )
 
     @callback
-    def _async_grid_sample(self, now: datetime) -> None:
+    def _async_grid_sample(self, now: datetime) -> None:  # noqa: ARG002 (time callback signature)
         if not self._unloading:
             self._queue_sample(dt_util.utcnow())
 

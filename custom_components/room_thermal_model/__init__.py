@@ -77,7 +77,7 @@ def _target_entries(hass: HomeAssistant, call: ServiceCall) -> list[RTMConfigEnt
     return selected
 
 
-async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:  # noqa: ARG001 (HA signature)
     """Register services (once, independent of config entries)."""
 
     async def _retrain(call: ServiceCall) -> ServiceResponse:
