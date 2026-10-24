@@ -1,0 +1,16 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "include-v-in-tag": true,
+      "include-component-in-tag": false,
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "custom_components/room_thermal_model/manifest.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    }
+  }
+}
