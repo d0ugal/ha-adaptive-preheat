@@ -1,0 +1,129 @@
+name: Compatibility
+
+# Tests the integration against the oldest Home Assistant release declared in
+# hacs.json and against the newest stable one, plus a daily canary against the
+# newest plugin release (which tracks Home Assistant betas during beta weeks).
+#
+# pytest-homeassistant-custom-component (PHACC) pins an exact homeassistant
+# version per release, so the PHACC version selects the HA version under test:
+#
+#   PHACC 0.13.305 -> homeassistant 2026.1.0   (python >=3.13)  minimum, hacs.json
+#   PHACC 0.13.308 -> homeassistant 2026.1.3   (last 2026.1.x)
+#   PHACC 0.13.316 -> homeassistant 2026.2.3   (python >=3.13)
+#   PHACC 0.13.374 -> homeassistant 2026.10.3  (python >=3.14)  latest at time of writing
+#
+# When hacs.json "homeassistant" changes, update the min entry below to the PHACC
+# release whose requirement is "homeassistant==<that version>" (see
+# https://pypi.org/pypi/pytest-homeassistant-custom-component/<version>/json).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compat-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  matrix:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    name: HA ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: minimum (2026.1.0)
+            python: "3.13"
+            phacc: "pytest-homeassistant-custom-component==0.13.305"
+          # Unpinned: newest stable plugin, so this tracks the latest HA release.
+          # Newer HA releases require a newer Python, hence 3.14.
+          - name: latest stable
+            python: "3.14"
+            phacc: "pytest-homeassistant-custom-component"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: Show Home Assistant version
+        run: >
+          uv run --managed-python --python "${{ matrix.python }}" --no-project
+          --with "${{ matrix.phacc }}"
+          python -c "import homeassistant.const as c; print('Home Assistant', c.__version__)"
+      - name: Pure model tests
+        run: >
+          uv run --managed-python --python "${{ matrix.python }}" --no-project
+          --with "${{ matrix.phacc }}" pytest tests/model -q
+      - name: Integration tests
+        run: >
+          uv run --managed-python --python "${{ matrix.python }}" --no-project
+          --with "${{ matrix.phacc }}" pytest tests/integration -q
+
+  canary:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    name: Canary (newest plugin, pre-releases allowed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: Show Home Assistant version
+        run: >
+          uv run --managed-python --python 3.14 --no-project --prerelease allow
+          --with pytest-homeassistant-custom-component
+          python -c "import homeassistant.const as c; print('Home Assistant', c.__version__)"
+      - name: Run tests
+        id: tests
+        run: >
+          uv run --managed-python --python 3.14 --no-project --prerelease allow
+          --with pytest-homeassistant-custom-component
+          pytest tests/model tests/integration -q
+      - name: Open issue on failure
+        if: failure() && steps.tests.outcome == 'failure'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const label = 'compat-failure';
+            try {
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label,
+                color: 'd93f0b',
+              });
+            } catch (e) {
+              if (!e.message.includes('already_exists')) throw e;
+            }
+
+            // Only one open issue at a time, do not spam.
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: label,
+              state: 'open',
+            });
+            if (existing.data.length > 0) return;
+
+            const date = new Date().toISOString().slice(0, 10);
+            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Home Assistant compatibility canary failed (${date})`,
+              body: `The test suite fails against the newest pytest-homeassistant-custom-component release. See the [workflow run](${run}) for the Home Assistant version and failures.\n\nOpened automatically by the compatibility workflow.`,
+              labels: [label],
+            });
