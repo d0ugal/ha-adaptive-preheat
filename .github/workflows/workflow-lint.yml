@@ -1,0 +1,85 @@
+name: Workflow Lint
+
+# actionlint (workflow syntax plus shellcheck of run blocks) and zizmor
+# (GitHub Actions static analysis) over .github/workflows.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - ".github/actionlint.yaml"
+      - ".github/zizmor.yml"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      attestations: read # verify the release build provenance
+    env:
+      ACTIONLINT_VERSION: 1.7.12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install actionlint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tarball="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          url="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${tarball}"
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          curl -fsSL --proto '=https' --tlsv1.2 "$url" -o "$tmp/$tarball"
+          # Fail closed unless the tarball was built by actionlint's release workflow.
+          gh attestation verify "$tmp/$tarball" --repo rhysd/actionlint \
+            --signer-workflow rhysd/actionlint/.github/workflows/release.yaml
+          tar -xzf "$tmp/$tarball" -C "$tmp" actionlint
+          sudo install -m 0755 "$tmp/actionlint" /usr/local/bin/actionlint
+          actionlint --version
+      - name: Run actionlint
+        # shellcheck is preinstalled on ubuntu runners.
+        run: actionlint -color
+
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      attestations: read # verify the release build provenance
+    env:
+      ZIZMOR_VERSION: 1.31.0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install zizmor
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tarball="zizmor-x86_64-unknown-linux-gnu.tar.gz"
+          url="https://github.com/zizmorcore/zizmor/releases/download/v${ZIZMOR_VERSION}/${tarball}"
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          curl -fsSL --proto '=https' --tlsv1.2 "$url" -o "$tmp/$tarball"
+          # Fail closed unless the tarball was built by zizmor's release workflow.
+          gh attestation verify "$tmp/$tarball" --repo zizmorcore/zizmor \
+            --signer-workflow zizmorcore/zizmor/.github/workflows/release-binaries.yml
+          dest="$HOME/.local/bin"
+          mkdir -p "$dest"
+          tar -xzf "$tmp/$tarball" -C "$dest" zizmor
+          chmod +x "$dest/zizmor"
+          echo "$dest" >> "$GITHUB_PATH"
+          "$dest/zizmor" --version
+      - name: Run zizmor
+        run: zizmor --min-confidence=medium .github/workflows/
