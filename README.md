@@ -120,9 +120,9 @@ sensor" input to `sensor.<zone>_preheat_minutes`.
 ## Development
 
 ```bash
-pip install -r requirements_test.txt
-pytest                     # pure model tests (no HA) + integration tests
-python scripts/simulate.py --days 30   # synthetic rooms: learning curve
+uv sync --locked --managed-python --python 3.13
+uv run pytest             # pure model tests (no HA) + integration tests
+uv run python scripts/simulate.py --days 30   # synthetic rooms: learning curve
 ```
 
 The model core (`rtm_core/`) is pure standard-library Python behind a `ThermalModel`
