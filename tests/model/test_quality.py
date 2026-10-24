@@ -7,7 +7,16 @@ import time
 import pytest
 
 from rtm_core import ModelConfig, RCThermalModel
-from rtm_core.quality import bad_rows, data_factor, heat_up_episodes, maturity, skill_factor
+from rtm_core.grid import Grid
+from rtm_core.quality import (
+    Params,
+    bad_rows,
+    data_factor,
+    episode_errors,
+    heat_up_episodes,
+    maturity,
+    skill_factor,
+)
 
 
 @pytest.mark.parametrize("name", ["radiator", "fast_radiator", "underfloor", "no_outdoor"])
@@ -72,3 +81,12 @@ def test_fit_time_30_days(run_of):
     print(f"\n30-day fit: {elapsed:.3f} s ({s['rows']} rows)")  # noqa: T201 (timing is the point)
     assert s["status"] == "ok"
     assert elapsed < 2.0
+
+
+def test_episode_errors_skips_episodes_with_missing_indoor():
+    """A missing endpoint temperature must skip the episode, not raise TypeError."""
+    g = Grid(5.0, 0.0, [18.0, 19.0, None, 20.0], [5.0] * 4, [1.0] * 4, [False] * 4)
+    p = Params(a=4.0, b=0.1, c=0.3, d_steps=0, use_outdoor=True)
+    assert episode_errors(g, p, [(0, 2, 3), (0, 3, 3)]) != []
+    assert episode_errors(g, p, [(0, 2, 3)]) == []
+    assert episode_errors(g, p, [(2, 3, 3)]) == []
