@@ -219,3 +219,112 @@ def test_reset_forgets_everything() -> None:
     assert scorer.open_run is None
     assert scorer.results == []
     assert scorer.consume_dirty() is True
+
+
+# ---------------------------------------------------------------- calibration
+
+
+def test_published_figure_is_kept_but_the_raw_one_is_judged() -> None:
+    scorer = RunScorer()
+    scorer.observe(at(0), 18.0, 20.0, 40.0, True, published_minutes=50.0)
+    assert scorer.open_run.predicted_minutes == 40.0
+    assert scorer.open_run.published_minutes == 50.0
+    result = run_to_target(scorer, 30)
+    assert result.error_minutes == 10  # raw 40 against 30
+    assert result.published_error_minutes == 20  # published 50 against 30
+    assert result.published_minutes == 50.0
+
+
+def test_published_defaults_to_raw() -> None:
+    scorer = opened(predicted=40.0)
+    assert scorer.open_run.published_minutes == 40.0
+
+
+def test_calibration_uses_raw_predictions_only() -> None:
+    scorer = RunScorer()
+    for index in range(6):
+        base = index * 100
+        scorer.observe(at(base), 18.0, 20.0, 40.0, True, published_minutes=60.0)
+        for minute in range(5, 60, 5):
+            scorer.observe(at(base + minute), 19.0, 20.0, None, True)
+        scorer.observe(at(base + 60), 20.0, 20.0, None, True)
+    cal = scorer.calibration()
+    assert cal.runs == 6
+    # actual 60 against raw 40 (ratio 1.5), not against the published 60 (ratio 1.0)
+    assert cal.factor > 1.2
+
+
+def test_calibration_ignores_unclean_runs() -> None:
+    scorer = RunScorer()
+    for index in range(6):
+        scorer.observe(at(index * 100), 18.0, 20.0, 40.0, True)
+        for minute in range(5, 60, 5):
+            scorer.observe(at(index * 100 + minute), 19.0, 20.0, None, False)
+        scorer.observe(at(index * 100 + 60), 20.0, 20.0, None, False)
+    assert scorer.summary().clean == 0
+    assert scorer.calibration().runs == 0
+
+
+def test_reset_clears_the_calibration() -> None:
+    scorer = RunScorer()
+    for index in range(6):
+        scorer.observe(at(index * 100), 18.0, 20.0, 40.0, True)
+        run_to_target_at = index * 100
+        for minute in range(5, 60, 5):
+            scorer.observe(at(run_to_target_at + minute), 19.0, 20.0, None, True)
+        scorer.observe(at(run_to_target_at + 60), 20.0, 20.0, None, True)
+    assert scorer.calibration().active
+    scorer.reset()
+    assert scorer.calibration().factor == 1.0
+
+
+def test_round_trip_keeps_published_figures() -> None:
+    scorer = RunScorer()
+    scorer.observe(at(0), 18.0, 20.0, 40.0, True, published_minutes=50.0)
+    run_to_target(scorer, 30)
+    scorer.observe(at(100), 18.0, 20.0, 40.0, True, published_minutes=52.0)
+    restored = RunScorer.from_dict(scorer.to_dict())
+    assert restored.results[0].published_minutes == 50.0
+    assert restored.open_run.published_minutes == 52.0
+
+
+def test_old_format_document_loads_with_published_missing() -> None:
+    old = {
+        "open": {
+            "started_at": at(100).isoformat(),
+            "start_c": 18.0,
+            "target_c": 20.0,
+            "predicted_minutes": 40.0,
+            "peak_c": 18.0,
+            "heating_minutes": 0.0,
+            "last_seen": at(100).isoformat(),
+        },
+        "results": [
+            {
+                "started_at": at(0).isoformat(),
+                "finished_at": at(30).isoformat(),
+                "outcome": "reached",
+                "start_c": 18.0,
+                "target_c": 20.0,
+                "peak_c": 20.0,
+                "predicted_minutes": 40.0,
+                "actual_minutes": 30.0,
+                "heating_fraction": 1.0,
+                "error_minutes": 10.0,
+            }
+        ],
+    }
+    scorer = RunScorer.from_dict(old)
+    assert scorer.open_run.published_minutes is None
+    result = scorer.results[0]
+    assert result.published_minutes is None
+    assert result.published_error_minutes == 10.0  # old figures were published raw
+    assert scorer.calibration().runs == 1
+    assert scorer.calibration().factor == 1.0
+
+
+def test_published_error_is_none_without_a_score() -> None:
+    scorer = opened()
+    result = scorer.observe(at(10), 18.5, 21.0, None, True)
+    assert result.outcome == OUTCOME_TARGET_CHANGED
+    assert result.published_error_minutes is None
