@@ -70,6 +70,8 @@ Lumped single-capacity (RC) model on a 5-minute grid:
   - `sensor.<zone>_max_reachable_temperature` (°C)
   - `sensor.<zone>_model_maturity` (%; attrs rmse, baseline_rmse, duration_mae, samples)
   - diagnostic: `_time_constant` (h), `_heating_rate` (K/h), `_dead_time` (min)
+  - diagnostic: `_last_run_error` and `_run_mae` (min): live run scoring (`rtm_core/scoring.py`),
+    predicted minus actual for runs that reached the target while heating
 
 ## 4. Parallel work
 

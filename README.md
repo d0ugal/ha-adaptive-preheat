@@ -80,6 +80,7 @@ expect larger errors.
 | `sensor.<zone>_preheat_start` | latest time to start heating to be at the target on arrival (only with an arrival sensor). The room keeps cooling until then, so it is computed from the temperature the room will have at the start time, not the current one. When the target is unreachable it aims at 0.5 K below the max reachable temperature instead |
 | `binary_sensor.<zone>_preheat_now` | on when it is time to start heating (only with an arrival sensor). It latches: once on it stays on until the arrival, unless the arrival moves more than (needed minutes + 30 min) away |
 | `sensor.<zone>_time_constant`, `_heating_rate`, `_dead_time` | diagnostic: learnt parameters |
+| `sensor.<zone>_last_run_error`, `_run_mae` | diagnostic: how live predictions turned out (see below) |
 
 When the target is unreachable, `sensor.<zone>_preheat_minutes` stays unknown with reason
 `unreachable`, while preheat start and preheat now still work as described above.
@@ -135,3 +136,20 @@ interface, so it can be tested alone or replaced by another backend.
 - The heating effort from `hvac_action` is on/off; a real valve-opening sensor gives
   more precise results.
 - Without an outdoor source, preheat estimates cannot adapt to the weather.
+
+## Run scoring
+
+The model also marks its own homework. When the zone is heating, the room is at least 0.5 K
+below the target and a preheat estimate exists, a run opens with that first prediction. It
+closes when the room gets within 0.2 K of the target:
+
+- `last_run_error` is the signed error of the newest scored run, `predicted - actual` in
+  minutes (positive: the model expected a longer warm-up than it took);
+- `run_mae` is the mean absolute error over the clean runs kept (the last 20 results), with
+  `bias_minutes`, counts, the run in progress and the latest run in its attributes.
+
+A run is only scored when it reached the target. A changed target, missing data or a run far
+longer than predicted closes it unscored. A run counts as *clean* when the zone was heating for
+at least 80% of it: a shared boiler can stop heating a zone mid-run, which the model cannot
+know about, so those runs are kept but do not feed the means. Results survive restarts and are
+cleared by the `reset` service.
