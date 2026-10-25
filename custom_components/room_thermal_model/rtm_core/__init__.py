@@ -13,6 +13,7 @@ from .base import (
 )
 from .model import RCThermalModel
 from .scoring import RunResult, RunScorer, ScoringSummary
+from .shared_prior import GroupPrior, PeerSummary, build_group_prior
 
 
 def create_model(config: ModelConfig | None = None) -> ThermalModel:
@@ -22,7 +23,9 @@ def create_model(config: ModelConfig | None = None) -> ThermalModel:
 
 __all__ = [
     "ForecastPoint",
+    "GroupPrior",
     "ModelConfig",
+    "PeerSummary",
     "PreheatEstimate",
     "QualityReport",
     "RCThermalModel",
@@ -32,5 +35,6 @@ __all__ = [
     "ScoringSummary",
     "ThermalModel",
     "ThermalParameters",
+    "build_group_prior",
     "create_model",
 ]
