@@ -48,6 +48,10 @@ Entities use `translation_key == key`, `unique_id = f"{entry_id}_{key}"` and an 
 - `tests/integration/` uses `pytest-homeassistant-custom-component`; the `fake_model` fixture swaps in a deterministic `FakeModel`, so tests do not exercise the real fit. `no_history` stops the recorder bootstrap.
 - Use `freezer.tick()` then `coordinator.async_refresh()` to move time; a state change also triggers a debounced refresh, so assert on properties of the result rather than on exact wall-clock durations where a refresh could land either side of a tick.
 
+## Privacy
+
+This repository is public. Never commit, push or write into a PR, issue or release anything personal or private: real names of people or rooms, home network addresses or hostnames, locations, email addresses, credentials, real file paths, real entity ids or any real data rows. Use generic names (`living_room`, `bedroom_1`, `192.0.2.1`, `example.com`). Commit with the GitHub noreply identity, never a personal email. `scripts/check_privacy.py` (the `Privacy` workflow) enforces the generic part; it can also read a denylist of personal terms from a file kept outside the repo, for a local pre-push hook. Report results from real data with anonymised room names.
+
 ## Workflow
 
 - Conventional commits (checked in CI; release-please reads them), atomic commits, never push to `main`: branch, PR, wait for green.

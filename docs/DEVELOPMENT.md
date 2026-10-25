@@ -24,6 +24,8 @@ belongs there so it stays testable alone. Run scoring (`rtm_core/scoring.py`) is
 
 ## Commits and pull requests
 
+The repository is public: commit with the GitHub noreply identity, use generic names in code, tests, docs and PR text, and never include data from a real home. See the `Privacy` check below.
+
 - Conventional commits (`feat:`, `fix:`, `build:`, `ci:`, `docs:`, `test:`, `chore:`);
   `!` and a `BREAKING CHANGE:` footer for breaking changes. A check enforces this on pull
   requests, and release-please reads them to pick the next version.
@@ -38,6 +40,7 @@ belongs there so it stays testable alone. Run scoring (`rtm_core/scoring.py`) is
 | `Pyright` | type check, strict on `rtm_core` |
 | `Compatibility` | the suite on the oldest Home Assistant in `hacs.json` and on the newest stable; a daily canary runs against the newest plugin release, pre-releases allowed |
 | `Validate` | hassfest and HACS validation |
+| `Privacy` | `scripts/check_privacy.py`: no private addresses, home paths, credentials, personal commit emails or other personal data in the commits of a change (the public log never echoes matches) |
 | `Workflow Lint` | `actionlint` and `zizmor` (action pinning, permissions) |
 | `CodeQL`, `Dependency Review`, `Scorecard` | security and supply chain |
 | `Release Please` | opens and maintains the release pull request |
