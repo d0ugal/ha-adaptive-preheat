@@ -45,6 +45,7 @@ from .const import (
     CONF_ALLOW_UNTRUSTED,
     CONF_HALF_LIFE_DAYS,
     CONF_HISTORY_DAYS,
+    CONF_SELF_CALIBRATE,
     CONF_TARGET_MODE,
     CONF_TARGET_TEMPERATURE,
     CONF_UPDATE_INTERVAL_MINUTES,
@@ -53,6 +54,7 @@ from .const import (
     DEFAULT_ALLOW_UNTRUSTED,
     DEFAULT_HALF_LIFE_DAYS,
     DEFAULT_HISTORY_DAYS,
+    DEFAULT_SELF_CALIBRATE,
     DEFAULT_TARGET_MODE,
     DEFAULT_TARGET_TEMPERATURE,
     DEFAULT_UPDATE_INTERVAL_MINUTES,
@@ -82,7 +84,7 @@ from .inputs import (
     build_sample,
     climate_target,
 )
-from .rtm_core import RunScorer, ScoringSummary, create_model
+from .rtm_core import Calibration, RunScorer, ScoringSummary, create_model
 from .rtm_core.base import (
     ForecastPoint,
     ModelConfig,
@@ -92,6 +94,7 @@ from .rtm_core.base import (
     ThermalModel,
     ThermalParameters,
 )
+from .rtm_core.calibration import apply_factor
 from .rtm_core.history_import import HistoryImportError, ParsedHistory, parse_history
 from .rtm_core.schedule import Rise, next_rise
 from .rtm_core.shared_prior import (
@@ -139,6 +142,8 @@ class ZoneData:
     arrival_target_c: float | None = None  # target to reach at the arrival
     next_block_start: datetime | None = None  # next schedule rise (UTC), if a schedule is set
     next_block_target_c: float | None = None
+    calibration_factor: float = 1.0  # applied to the model's minutes (1.0 = off or no evidence)
+    calibration_runs: int = 0  # clean runs the factor rests on
     extra: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -148,7 +153,12 @@ class ZoneData:
 
     @property
     def preheat_minutes(self) -> float | None:
-        """Minutes of heating needed (None when unknown or unreachable)."""
+        """Calibrated minutes of heating needed (None when unknown or unreachable)."""
+        return apply_factor(self.uncalibrated_minutes, self.calibration_factor)
+
+    @property
+    def uncalibrated_minutes(self) -> float | None:
+        """The model's own figure, before the self-calibration factor."""
         return self.preheat.minutes if self.preheat is not None else None
 
     def preheat_now(self, now: datetime) -> bool | None:
@@ -221,6 +231,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
         self.allow_untrusted: bool = bool(
             options.get(CONF_ALLOW_UNTRUSTED, DEFAULT_ALLOW_UNTRUSTED)
         )
+        self.self_calibrate: bool = bool(options.get(CONF_SELF_CALIBRATE, DEFAULT_SELF_CALIBRATE))
         self.history_days: float = float(options.get(CONF_HISTORY_DAYS, DEFAULT_HISTORY_DAYS))
         self.model_config = ModelConfig(
             step_minutes=float(SAMPLE_INTERVAL_MINUTES),
@@ -495,6 +506,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             )
         indoor = current.indoor_c
         outdoor = current.outdoor_c
+        calibration = self.scorer.calibration() if self.self_calibrate else Calibration()
         estimate: PreheatEstimate | None = None
         untrusted = False
         coast_c: float | None = None
@@ -526,6 +538,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
                                 forecast,
                                 lead_estimate,
                                 minutes,
+                                calibration.factor,
                             )
         except MODEL_ERRORS as err:
             raise UpdateFailed(
@@ -551,7 +564,11 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             status = STATUS_OK
         predicted = estimate.minutes if estimate is not None and status == STATUS_OK else None
         heating = current.effort > 0 if current.effort is not None else None
-        self.scorer.observe(now, indoor, target_c, predicted, heating)
+        # The scorer judges the RAW prediction (the factor must not feed its own evidence)
+        # and only records what was published.
+        self.scorer.observe(
+            now, indoor, target_c, predicted, heating, apply_factor(predicted, calibration.factor)
+        )
         if self.scorer.consume_dirty():
             self._schedule_save(now)
         preheat_start = arrival - timedelta(minutes=lead) if arrival and lead is not None else None
@@ -587,6 +604,8 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             arrival_target_c=arrival_target if arrival is not None else None,
             next_block_start=rise.start if rise else None,
             next_block_target_c=rise.target_c if rise else None,
+            calibration_factor=calibration.factor,
+            calibration_runs=calibration.runs,
         )
         self._schedule_timers(data, now)
         await self._async_snapshot(force=fitted)
@@ -614,6 +633,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
         forecast: list[ForecastPoint],
         estimate: PreheatEstimate,
         total: float,
+        factor: float = 1.0,
     ) -> float | None:
         """Minutes before the arrival at which heating must start (model lock held).
 
@@ -621,6 +641,9 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
         point: lead -> start temperature after ``total - lead`` minutes of coasting ->
         new duration. An unreachable target is replaced by the maximum reachable
         temperature minus a margin (the sensors stay unreachable; only the start moves).
+        ``factor`` is the self-calibration factor. The model's durations are scaled by it
+        so the lead agrees with the published ``preheat_minutes``: the iteration runs on
+        the model's own minutes and the room cools for ``total - lead * factor``.
         Returns None when no lead can be determined.
         """
         goal = target_c
@@ -638,7 +661,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
                 return total
         lead = max(0.0, estimate.minutes)
         for _ in range(LEAD_MAX_ITERATIONS):
-            wait = total - lead
+            wait = total - lead * factor
             if wait <= 0:
                 break
             start_c = self.model.coast(now, indoor, wait, outdoor, forecast)
@@ -653,7 +676,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
                 lead = nxt
                 break
             lead = nxt
-        return lead
+        return lead * factor
 
     @callback
     def _schedule_timers(self, data: ZoneData, now: datetime) -> None:

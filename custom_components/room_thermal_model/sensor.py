@@ -114,6 +114,9 @@ class PreheatMinutesSensor(RTMSensor):
             "arrival": zone.arrival.isoformat() if zone.arrival else None,
             "coast_c": _round(zone.coast_c),
             **({"next_block_target_c": _round(zone.next_block_target_c)} if self._schedule else {}),
+            "calibration_factor": _round(zone.calibration_factor, 3),
+            "calibration_runs": zone.calibration_runs,
+            "uncalibrated_minutes": _round(zone.uncalibrated_minutes, 1),
         }
 
 
