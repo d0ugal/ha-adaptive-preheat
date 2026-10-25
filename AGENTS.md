@@ -40,6 +40,8 @@ Coordinator rules that are easy to break (documented at the top of `coordinator.
 
 Fit trust (`rtm_core/trust.py`): `RCThermalModel.trust(target)` assesses the current fit and `preheat` attaches `trusted` / `trust_reasons` to the estimate. The coordinator withholds the minutes (status `untrusted_fit`, no lead, nothing scored) unless the `allow_untrusted` option is on. Only `False` withholds: `None` (a model double without a verdict) is treated as trusted. Thresholds live as constants in `trust.py` and are documented in its docstring and the README.
 
+Schedule-aware preheat: `rtm_core/schedule.py` (pure next-rise finder) and `schedule_feed.py` (cached `schedule.get_schedule` reads); the coordinator uses the rise as the arrival, the sooner of sensor and schedule winning.
+
 Run scoring (`rtm_core/scoring.py`): a run opens on the first estimate made while the zone is heating, closes when the room is within 0.2 K of the target, and is scored as `predicted - actual`. Only runs heating for at least 80% of the time feed the means, because a shared boiler can stop a zone mid-run.
 
 Entities use `translation_key == key`, `unique_id = f"{entry_id}_{key}"` and an explicit `entity_id` of `<platform>.<zone>_<key>`. Adding an entity means a key in `const.py`, translations in `strings.json` and all four of `translations/{en,it,fr,de}.json`, and updating `BASE_SENSORS` and the diagnostic set in `tests/integration/test_init.py`.
