@@ -198,6 +198,9 @@ class ModelMaturitySensor(RTMSensor):
             "bootstrapping": self.coordinator.bootstrapping,
             "trusted": zone.trusted,
             "trust_reasons": list(zone.trust_reasons),
+            "zone_group": self.coordinator.zone_group,
+            "prior_source": self.coordinator.prior_info["source"],
+            "prior_peers": list(self.coordinator.prior_info["peers"]),
         }
 
 

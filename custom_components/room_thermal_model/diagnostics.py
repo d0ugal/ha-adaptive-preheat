@@ -58,6 +58,8 @@ async def async_get_config_entry_diagnostics(
         "bootstrapping": coordinator.bootstrapping,
         "last_fit": coordinator.last_fit,
         "last_fit_summary": coordinator.last_fit_summary,
+        "zone_group": coordinator.zone_group,
+        "prior": coordinator.prior_info,
         "forecast": (
             {
                 "type": forecast.forecast_type,

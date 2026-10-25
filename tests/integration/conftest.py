@@ -159,6 +159,9 @@ class FakeModel(ThermalModel):
     trusted: bool | None = None
     trust_reasons: tuple[str, ...] = ()
     preheat_calls: list[dict[str, Any]] = field(default_factory=list)
+    maturity: float = 0.5
+    prior: Any = None
+    priors_seen: list[Any] = field(default_factory=list)
 
     def load_history(self, samples: Iterable[Sample], replace: bool = False) -> None:
         if replace:
@@ -168,11 +171,15 @@ class FakeModel(ThermalModel):
     def add_sample(self, sample: Sample) -> None:
         self.samples.append(sample)
 
+    def set_prior(self, prior: Any) -> None:
+        self.prior = prior
+
     def fit_due(self, now: datetime) -> bool:
         return self.due
 
     def fit(self, now: datetime) -> dict[str, Any]:
         self.fits += 1
+        self.priors_seen.append(self.prior)
         self.due = False
         self.params = ThermalParameters(3.0, 0.125, 0.0, 30.0)
         return {"ok": True}
@@ -222,7 +229,7 @@ class FakeModel(ThermalModel):
 
     def quality(self) -> QualityReport:
         return QualityReport(
-            maturity=0.5 if self.params else 0.0,
+            maturity=self.maturity if self.params else 0.0,
             samples=len(self.samples) + len(self.history),
             heating_hours=1.0,
             cooling_hours=2.0,
