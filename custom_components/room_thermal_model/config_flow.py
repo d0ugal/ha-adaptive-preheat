@@ -35,6 +35,7 @@ from .const import (
     CONF_TARGET_TEMPERATURE,
     CONF_UPDATE_INTERVAL_MINUTES,
     CONF_WEATHER,
+    CONF_ZONE_GROUP,
     CONF_ZONE_NAME,
     DEFAULT_ALLOW_UNTRUSTED,
     DEFAULT_HALF_LIFE_DAYS,
@@ -55,7 +56,9 @@ from .const import (
     TARGET_TEMPERATURE_STEP,
     UPDATE_INTERVAL_MAX,
     UPDATE_INTERVAL_MIN,
+    ZONE_GROUP_MAX_LENGTH,
 )
+from .zone_group import normalize_group
 
 OPTIONAL_INPUTS = (
     CONF_ROOM_SENSOR,
@@ -209,9 +212,15 @@ class RoomThermalModelOptionsFlow(OptionsFlowWithReload):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manage options."""
+        errors: dict[str, str] = {}
         if user_input is not None:
+            group = normalize_group(user_input.get(CONF_ZONE_GROUP))
+            if group is not None and len(group) > ZONE_GROUP_MAX_LENGTH:
+                errors[CONF_ZONE_GROUP] = "group_too_long"
+        if user_input is not None and not errors:
             return self.async_create_entry(
                 data={
+                    **({CONF_ZONE_GROUP: group} if group else {}),
                     CONF_TARGET_MODE: user_input[CONF_TARGET_MODE],
                     CONF_TARGET_TEMPERATURE: float(user_input[CONF_TARGET_TEMPERATURE]),
                     CONF_HALF_LIFE_DAYS: float(user_input[CONF_HALF_LIFE_DAYS]),
@@ -244,8 +253,11 @@ class RoomThermalModelOptionsFlow(OptionsFlowWithReload):
                 vol.Optional(
                     CONF_ALLOW_UNTRUSTED, default=DEFAULT_ALLOW_UNTRUSTED
                 ): BooleanSelector(),
+                vol.Optional(CONF_ZONE_GROUP): TextSelector(),
             }
         )
         return self.async_show_form(
-            step_id="init", data_schema=self.add_suggested_values_to_schema(schema, current)
+            step_id="init",
+            data_schema=self.add_suggested_values_to_schema(schema, user_input or current),
+            errors=errors,
         )
