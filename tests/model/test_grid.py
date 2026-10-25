@@ -6,7 +6,7 @@ import json
 from datetime import UTC, datetime, timedelta
 
 from rtm_core import ModelConfig, RCThermalModel, Sample
-from rtm_core.grid import Grid, resample, ts_of
+from rtm_core.grid import Grid, resample, rle_decode, rle_encode, ts_of
 
 T0 = datetime(2025, 1, 6, 0, 0, tzinfo=UTC)
 
@@ -112,8 +112,6 @@ def test_old_live_samples_are_ignored():
 
 
 def test_rle_roundtrip_and_malformed():
-    from rtm_core.grid import rle_decode, rle_encode
-
     values = [None, None, 5, 5, 5, 7, None, 0, 0]
     assert rle_encode(values) == [None, 2, 5, 3, 7, 1, None, 1, 0, 2]
     assert rle_decode(rle_encode(values)) == values
