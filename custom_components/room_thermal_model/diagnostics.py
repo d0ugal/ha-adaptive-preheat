@@ -32,6 +32,10 @@ async def async_get_config_entry_diagnostics(
             "quality": asdict(data.quality),
             "forecast_used": data.forecast_used,
             "arrival": data.arrival,
+            "arrival_source": data.arrival_source,
+            "arrival_target_c": data.arrival_target_c,
+            "next_block_start": data.next_block_start,
+            "next_block_target_c": data.next_block_target_c,
             "preheat_start": data.preheat_start,
             "coast_c": data.coast_c,
         }

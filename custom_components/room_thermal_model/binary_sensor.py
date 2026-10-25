@@ -23,7 +23,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up binary sensors."""
     coordinator = entry.runtime_data
-    if coordinator.inputs.arrival_sensor:
+    if coordinator.inputs.has_arrival:
         async_add_entities([PreheatNowBinarySensor(coordinator)])
 
 
@@ -52,6 +52,8 @@ class PreheatNowBinarySensor(RTMEntity, BinarySensorEntity):
             return {}
         return {
             "arrival": zone.arrival.isoformat() if zone.arrival else None,
+            "arrival_source": zone.arrival_source,
+            "arrival_target_c": zone.arrival_target_c,
             "preheat_start": zone.preheat_start.isoformat() if zone.preheat_start else None,
             "preheat_minutes": (
                 round(zone.preheat_minutes) if zone.preheat_minutes is not None else None

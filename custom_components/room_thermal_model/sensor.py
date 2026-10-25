@@ -56,7 +56,7 @@ async def async_setup_entry(
         LastRunErrorSensor(coordinator),
         RunMaeSensor(coordinator),
     ]
-    if coordinator.inputs.arrival_sensor:
+    if coordinator.inputs.has_arrival:
         entities.append(PreheatStartSensor(coordinator))
     async_add_entities(entities)
 
@@ -78,6 +78,10 @@ class PreheatMinutesSensor(RTMSensor):
     _attr_native_unit_of_measurement = UnitOfTime.MINUTES
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 0
+
+    @property
+    def _schedule(self) -> bool:
+        return self.coordinator.schedule is not None
 
     @property
     def native_value(self) -> float | None:
@@ -109,6 +113,7 @@ class PreheatMinutesSensor(RTMSensor):
             "details": dict(estimate.reason) if estimate else {},
             "arrival": zone.arrival.isoformat() if zone.arrival else None,
             "coast_c": _round(zone.coast_c),
+            **({"next_block_target_c": _round(zone.next_block_target_c)} if self._schedule else {}),
         }
 
 
@@ -126,12 +131,18 @@ class PreheatStartSensor(RTMSensor):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Arrival used."""
+        """Arrival used, where it came from and the next schedule block."""
         zone = self.zone
         if zone is None:
             return {}
         return {
             "arrival": zone.arrival.isoformat() if zone.arrival else None,
+            "arrival_source": zone.arrival_source,
+            "arrival_target_c": _round(zone.arrival_target_c),
+            "next_block_start": zone.next_block_start.isoformat()
+            if zone.next_block_start
+            else None,
+            "next_block_target_c": _round(zone.next_block_target_c),
             "reason": zone.status,
         }
 
