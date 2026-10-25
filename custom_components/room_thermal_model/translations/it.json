@@ -65,14 +65,16 @@
           "target_temperature": "Obiettivo fisso",
           "half_life_days": "Emivita dello storico",
           "history_days": "Storico da cui imparare",
-          "update_interval_minutes": "Intervallo di aggiornamento"
+          "update_interval_minutes": "Intervallo di aggiornamento",
+          "allow_untrusted": "Pubblica anche fit inaffidabili"
         },
         "data_description": {
           "target_mode": "Usa un obiettivo fisso o segui la temperatura impostata sul termostato.",
           "target_temperature": "Obiettivo in modalità fissa (anche il ripiego quando il termostato non ha una temperatura impostata).",
           "half_life_days": "I dati più vecchi pesano la metà dopo questi giorni (si adatta alle stagioni).",
           "history_days": "Giorni di storico del recorder caricati al primo avvio e dall'azione riaddestra.",
-          "update_interval_minutes": "Ogni quanti minuti viene ricalcolata la stima."
+          "update_interval_minutes": "Ogni quanti minuti viene ricalcolata la stima.",
+          "allow_untrusted": "Pubblica i minuti di preriscaldamento anche quando il fit sembra inaffidabile (un parametro al limite, pochi dati di riscaldamento, nessun vantaggio sulla persistenza). Disattivato di default: la stima resta sconosciuta con motivo untrusted_fit."
         }
       }
     }
