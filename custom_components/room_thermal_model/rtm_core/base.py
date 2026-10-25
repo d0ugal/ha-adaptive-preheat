@@ -77,6 +77,8 @@ class PreheatEstimate:
     outdoor_used_c: float | None  # effective (forecast-averaged) outdoor temperature
     max_reachable_c: float | None  # T_infinity at full effort
     reason: dict[str, Any] = field(default_factory=dict[str, Any])
+    trusted: bool | None = None  # fit trust verdict (None: no fit yet)
+    trust_reasons: tuple[str, ...] = ()  # machine readable reasons it is not trusted
 
 
 @dataclass
