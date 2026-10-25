@@ -75,7 +75,8 @@
           "history_days": "History to learn from",
           "update_interval_minutes": "Update interval",
           "allow_untrusted": "Publish untrusted fits",
-          "zone_group": "Zone group"
+          "zone_group": "Zone group",
+          "self_calibrate": "Self-calibrate"
         },
         "data_description": {
           "target_mode": "Use a fixed target or follow the thermostat's set temperature.",
@@ -84,7 +85,8 @@
           "history_days": "Days of recorder history loaded on first start and by the retrain action.",
           "update_interval_minutes": "How often the estimate is recomputed, in minutes.",
           "allow_untrusted": "Publish preheat minutes even when the fit looks unreliable (a parameter at its limit, too little heating data, no skill over persistence). Off by default: the estimate is then unknown with reason untrusted_fit.",
-          "zone_group": "Optional. Zones on the same boiler zone (e.g. upstairs) share the heating and loss rates of their well fitted peers while their own fit is immature. Leave empty to learn every zone on its own."
+          "zone_group": "Optional. Zones on the same boiler zone (e.g. upstairs) share the heating and loss rates of their well fitted peers while their own fit is immature. Leave empty to learn every zone on its own.",
+          "self_calibrate": "Scale the preheat estimate by how the previous warm-ups turned out (needs several clean scored runs; stays at 1.0 until then)."
         }
       }
     },

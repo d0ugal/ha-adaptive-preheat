@@ -75,7 +75,8 @@
           "history_days": "Verlauf zum Lernen",
           "update_interval_minutes": "Aktualisierungsintervall",
           "allow_untrusted": "Unzuverlässige Anpassungen veröffentlichen",
-          "zone_group": "Zonengruppe"
+          "zone_group": "Zonengruppe",
+          "self_calibrate": "Selbstkalibrierung"
         },
         "data_description": {
           "target_mode": "Ein festes Ziel verwenden oder der Solltemperatur des Thermostats folgen.",
@@ -84,7 +85,8 @@
           "history_days": "Tage des Recorder-Verlaufs, die beim ersten Start und durch die Aktion Neu trainieren geladen werden.",
           "update_interval_minutes": "Wie oft die Schätzung neu berechnet wird, in Minuten.",
           "allow_untrusted": "Vorheizminuten auch dann veröffentlichen, wenn die Anpassung unzuverlässig wirkt (Parameter am Limit, zu wenig Heizdaten, kein Vorteil gegenüber Persistenz). Standardmäßig aus: Die Schätzung ist dann unbekannt mit dem Grund untrusted_fit.",
-          "zone_group": "Optional. Zonen derselben Kesselzone (z. B. Obergeschoss) übernehmen Heiz- und Verlustrate gut angepasster Nachbarn, solange ihr eigenes Modell unreif ist. Leer lassen, damit jede Zone allein lernt."
+          "zone_group": "Optional. Zonen derselben Kesselzone (z. B. Obergeschoss) übernehmen Heiz- und Verlustrate gut angepasster Nachbarn, solange ihr eigenes Modell unreif ist. Leer lassen, damit jede Zone allein lernt.",
+          "self_calibrate": "Skaliert die Vorheizschätzung nach dem Ergebnis früherer Aufheizvorgänge (benötigt mehrere saubere bewertete Läufe; bis dahin 1,0)."
         }
       }
     },

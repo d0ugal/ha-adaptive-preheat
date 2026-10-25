@@ -31,6 +31,7 @@ from .const import (
     CONF_ROOM_SENSOR,
     CONF_SCHEDULE_ENTITY,
     CONF_SCHEDULE_TARGET_KEY,
+    CONF_SELF_CALIBRATE,
     CONF_TARGET_MODE,
     CONF_TARGET_TEMPERATURE,
     CONF_UPDATE_INTERVAL_MINUTES,
@@ -41,6 +42,7 @@ from .const import (
     DEFAULT_HALF_LIFE_DAYS,
     DEFAULT_HISTORY_DAYS,
     DEFAULT_SCHEDULE_TARGET_KEY,
+    DEFAULT_SELF_CALIBRATE,
     DEFAULT_TARGET_MODE,
     DEFAULT_TARGET_TEMPERATURE,
     DEFAULT_UPDATE_INTERVAL_MINUTES,
@@ -166,6 +168,7 @@ class RoomThermalModelConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_HALF_LIFE_DAYS: DEFAULT_HALF_LIFE_DAYS,
                     CONF_HISTORY_DAYS: DEFAULT_HISTORY_DAYS,
                     CONF_UPDATE_INTERVAL_MINUTES: DEFAULT_UPDATE_INTERVAL_MINUTES,
+                    CONF_SELF_CALIBRATE: DEFAULT_SELF_CALIBRATE,
                 }
                 return self.async_create_entry(title=name, data=data, options=options)
         schema = vol.Schema({**_input_fields(include_climate=True), **_target_fields()})
@@ -227,6 +230,9 @@ class RoomThermalModelOptionsFlow(OptionsFlowWithReload):
                     CONF_HISTORY_DAYS: int(user_input[CONF_HISTORY_DAYS]),
                     CONF_UPDATE_INTERVAL_MINUTES: int(user_input[CONF_UPDATE_INTERVAL_MINUTES]),
                     CONF_ALLOW_UNTRUSTED: bool(user_input.get(CONF_ALLOW_UNTRUSTED, False)),
+                    CONF_SELF_CALIBRATE: bool(
+                        user_input.get(CONF_SELF_CALIBRATE, DEFAULT_SELF_CALIBRATE)
+                    ),
                 }
             )
         current = {
@@ -236,6 +242,7 @@ class RoomThermalModelOptionsFlow(OptionsFlowWithReload):
             CONF_HISTORY_DAYS: DEFAULT_HISTORY_DAYS,
             CONF_UPDATE_INTERVAL_MINUTES: DEFAULT_UPDATE_INTERVAL_MINUTES,
             CONF_ALLOW_UNTRUSTED: DEFAULT_ALLOW_UNTRUSTED,
+            CONF_SELF_CALIBRATE: DEFAULT_SELF_CALIBRATE,
             **self.config_entry.options,
         }
         schema = vol.Schema(
@@ -254,6 +261,7 @@ class RoomThermalModelOptionsFlow(OptionsFlowWithReload):
                     CONF_ALLOW_UNTRUSTED, default=DEFAULT_ALLOW_UNTRUSTED
                 ): BooleanSelector(),
                 vol.Optional(CONF_ZONE_GROUP): TextSelector(),
+                vol.Required(CONF_SELF_CALIBRATE): BooleanSelector(),
             }
         )
         return self.async_show_form(
