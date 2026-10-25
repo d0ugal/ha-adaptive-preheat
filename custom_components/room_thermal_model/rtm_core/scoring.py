@@ -20,6 +20,8 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any, Final, cast
 
+from .calibration import Calibration, calibration_factor
+
 MIN_GAP_K: Final = 0.5  # the room must be this far below the target to open a run
 MIN_PREDICTED_MINUTES: Final = 5.0  # shorter predictions are noise, not worth scoring
 REACHED_MARGIN_K: Final = 0.2  # at the target within this many kelvin
@@ -48,6 +50,9 @@ class OpenRun:
     peak_c: float
     heating_minutes: float = 0.0
     last_seen: datetime | None = None
+    # What was published (calibrated). ``predicted_minutes`` is always the raw model figure.
+    # None in documents stored before calibration existed: published equalled raw then.
+    published_minutes: float | None = None
 
 
 @dataclass(frozen=True)
@@ -63,7 +68,18 @@ class RunResult:
     predicted_minutes: float
     actual_minutes: float
     heating_fraction: float
-    error_minutes: float | None
+    error_minutes: float | None  # raw ``predicted_minutes - actual_minutes``
+    published_minutes: float | None = None  # None (old documents) means the raw figure
+
+    @property
+    def published_error_minutes(self) -> float | None:
+        """Signed error of the figure that was published (calibrated)."""
+        if self.error_minutes is None:
+            return None
+        published = (
+            self.predicted_minutes if self.published_minutes is None else self.published_minutes
+        )
+        return published - self.actual_minutes
 
     @property
     def clean(self) -> bool:
@@ -115,15 +131,18 @@ class RunScorer:
         target_c: float,
         predicted_minutes: float | None,
         heating: bool | None,
+        published_minutes: float | None = None,
     ) -> RunResult | None:
         """Feed one update; returns the run that closed with it, if any.
 
-        ``predicted_minutes`` is the current estimate (None when there is none),
-        ``heating`` whether the zone is really heating now (None = unknown).
+        ``predicted_minutes`` is the current RAW estimate (None when there is none) and
+        is what gets judged; ``published_minutes`` is the calibrated figure shown to the
+        user (kept for reporting only, defaults to the raw one). ``heating`` is whether
+        the zone is really heating now (None = unknown).
         """
         run = self.open_run
         if run is None:
-            self._maybe_open(now, indoor_c, target_c, predicted_minutes, heating)
+            self._maybe_open(now, indoor_c, target_c, predicted_minutes, heating, published_minutes)
             return None
         if run.last_seen is not None and _minutes(run.last_seen, now) > NO_DATA_MINUTES:
             return self._close(now, OUTCOME_NO_DATA)
@@ -151,6 +170,7 @@ class RunScorer:
         target_c: float,
         predicted_minutes: float | None,
         heating: bool | None,
+        published_minutes: float | None,
     ) -> None:
         if indoor_c is None or predicted_minutes is None or heating is not True:
             return
@@ -163,6 +183,9 @@ class RunScorer:
             predicted_minutes=predicted_minutes,
             peak_c=indoor_c,
             last_seen=now,
+            published_minutes=published_minutes
+            if published_minutes is not None
+            else predicted_minutes,
         )
         self._dirty = True
 
@@ -183,11 +206,18 @@ class RunScorer:
             actual_minutes=actual,
             heating_fraction=fraction,
             error_minutes=run.predicted_minutes - actual if outcome == OUTCOME_REACHED else None,
+            published_minutes=run.published_minutes,
         )
         self.results.append(result)
         del self.results[:-MAX_RESULTS]
         self._dirty = True
         return result
+
+    def calibration(self) -> Calibration:
+        """Correction factor from the kept clean runs, judged on their RAW predictions."""
+        return calibration_factor(
+            (r.predicted_minutes, r.actual_minutes) for r in self.results if r.clean
+        )
 
     def summary(self) -> ScoringSummary:
         """Aggregate over the kept results."""

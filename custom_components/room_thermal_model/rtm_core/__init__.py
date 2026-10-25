@@ -11,6 +11,7 @@ from .base import (
     ThermalModel,
     ThermalParameters,
 )
+from .calibration import Calibration, calibration_factor
 from .model import RCThermalModel
 from .scoring import RunResult, RunScorer, ScoringSummary
 from .shared_prior import GroupPrior, PeerSummary, build_group_prior
@@ -22,6 +23,7 @@ def create_model(config: ModelConfig | None = None) -> ThermalModel:
 
 
 __all__ = [
+    "Calibration",
     "ForecastPoint",
     "GroupPrior",
     "ModelConfig",
@@ -36,5 +38,6 @@ __all__ = [
     "ThermalModel",
     "ThermalParameters",
     "build_group_prior",
+    "calibration_factor",
     "create_model",
 ]
