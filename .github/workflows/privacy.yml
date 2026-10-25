@@ -28,4 +28,6 @@ jobs:
       - name: Scan the commits in this change
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: python3 scripts/check_privacy.py --base "$BASE_SHA" --head HEAD
+          # Not HEAD: on pull requests that is GitHub's synthetic merge commit.
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python3 scripts/check_privacy.py --base "$BASE_SHA" --head "$HEAD_SHA"
