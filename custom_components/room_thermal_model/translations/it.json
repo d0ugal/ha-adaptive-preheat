@@ -12,6 +12,8 @@
           "outdoor_temperature_sensor": "Sensore temperatura esterna",
           "weather_entity": "Entità meteo",
           "arrival_sensor": "Sensore orario di arrivo",
+          "schedule_entity": "Programma orario",
+          "schedule_target_key": "Chiave della temperatura nel programma",
           "target_mode": "Temperatura obiettivo",
           "target_temperature": "Obiettivo fisso"
         },
@@ -23,6 +25,8 @@
           "outdoor_temperature_sensor": "Facoltativo. Temperatura esterna attuale (lo storico viene usato per l'apprendimento).",
           "weather_entity": "Facoltativo. Previsione per la finestra di preriscaldamento (oraria, altrimenti due volte al giorno, altrimenti giornaliera) e temperatura esterna quando manca il sensore esterno.",
           "arrival_sensor": "Facoltativo. Sensore timestamp con l'arrivo previsto (es. sensor.house_next_return_eta di Home Return Predictor): abilita le entità inizio preriscaldamento e preriscalda ora.",
+          "schedule_entity": "Facoltativo. Un programma (schedule), ad esempio schedule.soggiorno_riscaldamento. L'inizio del prossimo blocco che alza la temperatura obiettivo viene usato come arrivo, quindi inizio preriscaldamento e preriscaldamento ora funzionano senza sensore di arrivo. Se sono impostati entrambi vince il più vicino.",
+          "schedule_target_key": "Nome del campo dati di ogni blocco del programma che contiene la temperatura obiettivo (predefinito: target_temperature). Usato solo con un programma.",
           "target_mode": "Usa un obiettivo fisso o segui la temperatura impostata sul termostato.",
           "target_temperature": "Obiettivo in modalità fissa (anche il ripiego quando il termostato non ha una temperatura impostata)."
         }
@@ -36,7 +40,9 @@
           "heating_effort_sensor": "Sensore sforzo di riscaldamento",
           "outdoor_temperature_sensor": "Sensore temperatura esterna",
           "weather_entity": "Entità meteo",
-          "arrival_sensor": "Sensore orario di arrivo"
+          "arrival_sensor": "Sensore orario di arrivo",
+          "schedule_entity": "Programma orario",
+          "schedule_target_key": "Chiave della temperatura nel programma"
         },
         "data_description": {
           "zone_name": "Nome della zona (stanza o zona di riscaldamento); usato anche per gli ID delle entità.",
@@ -44,7 +50,9 @@
           "heating_effort_sensor": "Facoltativo. Richiesta di calore in % (0-100), es. apertura valvola. Senza, lo sforzo deriva da hvac_action (heating = 100 %, idle/off = 0 %).",
           "outdoor_temperature_sensor": "Facoltativo. Temperatura esterna attuale (lo storico viene usato per l'apprendimento).",
           "weather_entity": "Facoltativo. Previsione per la finestra di preriscaldamento (oraria, altrimenti due volte al giorno, altrimenti giornaliera) e temperatura esterna quando manca il sensore esterno.",
-          "arrival_sensor": "Facoltativo. Sensore timestamp con l'arrivo previsto (es. sensor.house_next_return_eta di Home Return Predictor): abilita le entità inizio preriscaldamento e preriscalda ora."
+          "arrival_sensor": "Facoltativo. Sensore timestamp con l'arrivo previsto (es. sensor.house_next_return_eta di Home Return Predictor): abilita le entità inizio preriscaldamento e preriscalda ora.",
+          "schedule_entity": "Facoltativo. Un programma (schedule), ad esempio schedule.soggiorno_riscaldamento. L'inizio del prossimo blocco che alza la temperatura obiettivo viene usato come arrivo, quindi inizio preriscaldamento e preriscaldamento ora funzionano senza sensore di arrivo. Se sono impostati entrambi vince il più vicino.",
+          "schedule_target_key": "Nome del campo dati di ogni blocco del programma che contiene la temperatura obiettivo (predefinito: target_temperature). Usato solo con un programma."
         }
       }
     },

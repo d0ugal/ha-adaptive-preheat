@@ -12,6 +12,8 @@
           "outdoor_temperature_sensor": "Capteur de température extérieure",
           "weather_entity": "Entité météo",
           "arrival_sensor": "Capteur d'heure d'arrivée",
+          "schedule_entity": "Programme horaire",
+          "schedule_target_key": "Clé de température du programme",
           "target_mode": "Température de consigne",
           "target_temperature": "Consigne fixe"
         },
@@ -23,6 +25,8 @@
           "outdoor_temperature_sensor": "Facultatif. Température extérieure actuelle (l'historique sert à l'apprentissage).",
           "weather_entity": "Facultatif. Prévisions pour la fenêtre de préchauffage (horaires, sinon biquotidiennes, sinon quotidiennes) et température extérieure en l'absence de capteur extérieur.",
           "arrival_sensor": "Facultatif. Capteur horodaté avec l'arrivée prévue (par ex. sensor.house_next_return_eta de Home Return Predictor) : active les entités début du préchauffage et préchauffer maintenant.",
+          "schedule_entity": "Facultatif. Un programme (schedule), par exemple schedule.salon_chauffage. Le début de son prochain bloc qui relève la consigne sert d'arrivée : le démarrage du préchauffage et le préchauffage maintenant fonctionnent donc sans capteur d'arrivée. Le plus proche l'emporte si les deux sont définis.",
+          "schedule_target_key": "Nom du champ de données de chaque bloc du programme qui contient la température cible (par défaut : target_temperature). Utilisé seulement avec un programme.",
           "target_mode": "Utiliser une consigne fixe ou suivre la consigne du thermostat.",
           "target_temperature": "Consigne utilisée en mode fixe (également la valeur de repli si le thermostat n'a pas de consigne)."
         }
@@ -36,7 +40,9 @@
           "heating_effort_sensor": "Capteur de demande de chauffage",
           "outdoor_temperature_sensor": "Capteur de température extérieure",
           "weather_entity": "Entité météo",
-          "arrival_sensor": "Capteur d'heure d'arrivée"
+          "arrival_sensor": "Capteur d'heure d'arrivée",
+          "schedule_entity": "Programme horaire",
+          "schedule_target_key": "Clé de température du programme"
         },
         "data_description": {
           "zone_name": "Nom de la zone (pièce ou zone de chauffage) ; également utilisé pour les ID d'entité.",
@@ -44,7 +50,9 @@
           "heating_effort_sensor": "Facultatif. Demande de chauffage en % (0-100), par ex. ouverture de vanne. Sans lui, la demande provient de hvac_action (heating = 100 %, idle/off = 0 %).",
           "outdoor_temperature_sensor": "Facultatif. Température extérieure actuelle (l'historique sert à l'apprentissage).",
           "weather_entity": "Facultatif. Prévisions pour la fenêtre de préchauffage (horaires, sinon biquotidiennes, sinon quotidiennes) et température extérieure en l'absence de capteur extérieur.",
-          "arrival_sensor": "Facultatif. Capteur horodaté avec l'arrivée prévue (par ex. sensor.house_next_return_eta de Home Return Predictor) : active les entités début du préchauffage et préchauffer maintenant."
+          "arrival_sensor": "Facultatif. Capteur horodaté avec l'arrivée prévue (par ex. sensor.house_next_return_eta de Home Return Predictor) : active les entités début du préchauffage et préchauffer maintenant.",
+          "schedule_entity": "Facultatif. Un programme (schedule), par exemple schedule.salon_chauffage. Le début de son prochain bloc qui relève la consigne sert d'arrivée : le démarrage du préchauffage et le préchauffage maintenant fonctionnent donc sans capteur d'arrivée. Le plus proche l'emporte si les deux sont définis.",
+          "schedule_target_key": "Nom du champ de données de chaque bloc du programme qui contient la température cible (par défaut : target_temperature). Utilisé seulement avec un programme."
         }
       }
     },

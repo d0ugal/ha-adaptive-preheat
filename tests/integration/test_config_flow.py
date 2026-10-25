@@ -15,6 +15,8 @@ from custom_components.room_thermal_model.const import (
     CONF_HISTORY_DAYS,
     CONF_OUTDOOR_SENSOR,
     CONF_ROOM_SENSOR,
+    CONF_SCHEDULE_ENTITY,
+    CONF_SCHEDULE_TARGET_KEY,
     CONF_TARGET_MODE,
     CONF_TARGET_TEMPERATURE,
     CONF_UPDATE_INTERVAL_MINUTES,
@@ -29,6 +31,7 @@ from .conftest import (
     EFFORT,
     OUTDOOR,
     ROOM,
+    SCHEDULE,
     WEATHER,
     ZONE,
     make_entry,
@@ -179,3 +182,45 @@ async def test_reconfigure(hass: HomeAssistant) -> None:
         CONF_CLIMATE: CLIMATE,
         CONF_OUTDOOR_SENSOR: OUTDOOR,
     }
+
+
+async def test_schedule_inputs_are_stored(hass: HomeAssistant) -> None:
+    """Schedule entity and a custom key are kept; a blank or default key is dropped."""
+    set_inputs(hass)
+    hass.states.async_set(SCHEDULE, "off")
+    result = await _start(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_ZONE_NAME: ZONE,
+            CONF_CLIMATE: CLIMATE,
+            CONF_SCHEDULE_ENTITY: SCHEDULE,
+            CONF_SCHEDULE_TARGET_KEY: "  temp ",
+        },
+    )
+    await hass.async_block_till_done()
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_SCHEDULE_ENTITY] == SCHEDULE
+    assert result["data"][CONF_SCHEDULE_TARGET_KEY] == "temp"
+    coordinator = result["result"].runtime_data
+    assert coordinator.inputs.schedule_entity == SCHEDULE
+    assert coordinator.inputs.schedule_target_key == "temp"
+
+
+async def test_schedule_default_and_stray_keys_are_dropped(hass: HomeAssistant) -> None:
+    set_inputs(hass)
+    hass.states.async_set(SCHEDULE, "off")
+    entry = await setup_entry(hass, make_entry(hass))
+    for user_input, expected in (
+        ({CONF_SCHEDULE_ENTITY: SCHEDULE, CONF_SCHEDULE_TARGET_KEY: "target_temperature"}, {}),
+        ({CONF_SCHEDULE_ENTITY: SCHEDULE, CONF_SCHEDULE_TARGET_KEY: "   "}, {}),
+        ({CONF_SCHEDULE_TARGET_KEY: "temp"}, None),  # a key without a schedule is meaningless
+    ):
+        result = await entry.start_reconfigure_flow(hass)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_ZONE_NAME: ZONE, **user_input}
+        )
+        await hass.async_block_till_done()
+        assert result["type"] is FlowResultType.ABORT
+        assert CONF_SCHEDULE_TARGET_KEY not in entry.data
+        assert (CONF_SCHEDULE_ENTITY in entry.data) is (expected is not None)
