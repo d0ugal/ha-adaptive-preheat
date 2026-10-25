@@ -71,3 +71,15 @@ Assistant restart, not a reload.
 This is a fork of [giogandola98/ha-room-thermal-model](https://github.com/giogandola98/ha-room-thermal-model).
 The fork adds the CI and release tooling above, strict typing of the core, a coverage gate and run
 scoring. The learning model itself is the upstream design (see `PLAN.md`).
+
+## Evaluated and not adopted
+
+- A stronger prior on the loss rate from the free-cooling time constant (`cooling.py`),
+  applied when heating data is thin. On a year of real data in six rooms, a soft prior
+  (worth up to 400 h of data) left the fit unchanged, because hundreds of hours of cooling
+  data outvote it. A prior strong enough to matter is the same as fixing the loss rate, which
+  gave plausible time constants (25 to 45 h) but a maximum reachable temperature that was
+  still implausible whenever the heating rate was a starting value, and a worse holdout
+  skill in several windows (up to 6 points worse than persistence-relative skill, and
+  clearly worse in one room with almost no heating). Fit trust (`trust.py`) handles these
+  fits instead.

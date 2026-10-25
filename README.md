@@ -70,7 +70,8 @@ Settings → Devices & services → Add integration → **Room Thermal Model**.
 | Arrival sensor | no | any timestamp sensor (e.g. `sensor.house_next_return_eta` from [Home Return Predictor](https://github.com/giogandola98/ha-home-return-predictor)); enables preheat start / preheat now |
 
 Options: target temperature (fixed, default 20.5 °C, or follow the climate's target),
-data half-life (21 days), history window (30 days), update interval (5 min).
+data half-life (21 days), history window (30 days), update interval (5 min), and
+`allow_untrusted` (off; see [Fit trust](#fit-trust)).
 Without any outdoor source the model still works but cannot follow the weather, so
 expect larger errors.
 
@@ -78,9 +79,9 @@ expect larger errors.
 
 | Entity | Content |
 |---|---|
-| `sensor.<zone>_preheat_minutes` | minutes of full heating needed to reach the target; unknown while learning, when unreachable or without outdoor data (attribute `reason`, e.g. `unreachable`, `no_outdoor`) |
+| `sensor.<zone>_preheat_minutes` | minutes of full heating needed to reach the target; unknown while learning, when the fit is not trusted, when unreachable or without outdoor data (attribute `reason`, e.g. `untrusted_fit`, `unreachable`, `no_outdoor`; attributes `trusted`, `trust_reasons`) |
 | `sensor.<zone>_max_reachable_temperature` | highest temperature reachable at the outdoor temperature averaged over the preheat window |
-| `sensor.<zone>_model_maturity` | 0–100 %; attributes `rmse_c`, `baseline_rmse_c`, `duration_mae_minutes`, `heating_hours`, `cooling_hours` |
+| `sensor.<zone>_model_maturity` | 0–100 %; attributes `rmse_c`, `baseline_rmse_c`, `duration_mae_minutes`, `heating_hours`, `cooling_hours`, `trusted`, `trust_reasons` |
 | `sensor.<zone>_preheat_start` | latest time to start heating to be at the target on arrival (only with an arrival sensor). The room keeps cooling until then, so it is computed from the temperature the room will have at the start time, not the current one. When the target is unreachable it aims at 0.5 K below the max reachable temperature instead |
 | `binary_sensor.<zone>_preheat_now` | on when it is time to start heating (only with an arrival sensor). It latches: once on it stays on until the arrival, unless the arrival moves more than (needed minutes + 30 min) away |
 | `sensor.<zone>_time_constant`, `_heating_rate`, `_dead_time` | diagnostic: learnt parameters |
@@ -90,9 +91,47 @@ When the target is unreachable, `sensor.<zone>_preheat_minutes` stays unknown wi
 `unreachable`, while preheat start and preheat now still work as described above.
 
 The `reason` attribute of the preheat sensors explains why there is no value: for example
-`unreachable` (the target is above the max reachable temperature) or `no_outdoor` (the
+`untrusted_fit` (see [Fit trust](#fit-trust)), `unreachable` (the target is above the max reachable temperature) or `no_outdoor` (the
 model needs outdoor data but none is available: no sensor, no forecast and no reference
 learnt yet).
+
+## Fit trust
+
+The fit always produces numbers, even when the data cannot identify them: a time constant
+pinned at its 100 h limit, a heating rate that never left its starting value, or a maximum
+reachable temperature of 69 °C. Publishing minutes from such a fit is worse than publishing
+nothing, so every fit is assessed (`rtm_core/trust.py`). When it is not trusted,
+`sensor.<zone>_preheat_minutes` is unknown with `reason: untrusted_fit`, and preheat start
+and preheat now are unknown too (no estimate, nothing is scored). The parameter sensors and
+the maximum reachable temperature still publish so you can see what was learnt.
+
+Read `trusted` (true or false) and `trust_reasons` on `preheat_minutes` and
+`model_maturity`. Each reason is a machine readable code:
+
+| Reason | Meaning | Threshold |
+|---|---|---|
+| `loss_rate_at_bound` | the loss rate hit its limit, so the data did not identify it | time constant 95 h or more, or loss rate within 5 % of the upper limit |
+| `heating_rate_low` | heating rate implausibly low (typical radiators give 1 to 4 K/h) | below 0.5 K/h |
+| `heating_rate_unlearnt` | heating rate is still the starting value | within 0.1 K/h of 3 K/h with under 10 h of heating |
+| `dead_time_at_bound` | the dead time search ran to the end of its range | 0 min, or within one step of the maximum (90 min) |
+| `max_reachable_implausible` | the room could be heated further above outdoor than any heating system sized for it | (a + c) / b above 2 x (target - (-3 °C)), 47 K at a 20.5 °C target |
+| `too_little_heating` | not enough heating seen to learn the response | under 10 h at effort 0.5 or more |
+| `not_evaluated` | no holdout evaluation yet | too little data |
+| `no_skill` | the holdout had heat-up episodes but the 60 minute forecast is not at least 3 % better than "temperature unchanged" | RMSE above 97 % of the baseline |
+
+The maximum reachable limit comes from the target: a heating system is sized to hold the
+target on a design cold day (about -3 °C), and a margin of 2 x that is generous. A maximum
+reachable temperature below the target is not suspicious; it is the genuine `unreachable`
+status.
+
+Evidence from a year of real data in six rooms: with the default 30 day window and with the
+whole year, every fit tripped at least two checks. Fits with few heating hours lean on the
+starting values; fits with plenty (up to 245 h) still pinned the loss rate and gave a heating
+rate under 0.5 K/h with no skill over persistence, so the data did not support the model.
+Synthetic rooms with two weeks of data pass all checks.
+
+Set the option `allow_untrusted` to publish the estimate anyway. `trusted` and `trust_reasons`
+are still reported, so a template or a dashboard can show a warning.
 
 Changing the input sensors via **Reconfigure** discards the learnt model and re-imports
 the history automatically.
