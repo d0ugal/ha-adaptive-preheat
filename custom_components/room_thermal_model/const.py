@@ -27,6 +27,7 @@ CONF_HALF_LIFE_DAYS: Final = "half_life_days"
 CONF_HISTORY_DAYS: Final = "history_days"
 CONF_UPDATE_INTERVAL_MINUTES: Final = "update_interval_minutes"
 CONF_ALLOW_UNTRUSTED: Final = "allow_untrusted"
+CONF_ZONE_GROUP: Final = "zone_group"  # optional: rooms on one boiler zone share a prior
 
 DEFAULT_SCHEDULE_TARGET_KEY: Final = "target_temperature"
 DEFAULT_TARGET_MODE: Final = TARGET_MODE_FIXED
@@ -64,6 +65,7 @@ TARGET_TEMPERATURE_MAX: Final = 30.0
 TARGET_TEMPERATURE_STEP: Final = 0.5
 HALF_LIFE_DAYS_MIN: Final = 3
 HALF_LIFE_DAYS_MAX: Final = 120
+ZONE_GROUP_MAX_LENGTH: Final = 64
 HISTORY_DAYS_MIN: Final = 7
 HISTORY_DAYS_MAX: Final = 400  # a year of imported history plus margin
 UPDATE_INTERVAL_MIN: Final = 1

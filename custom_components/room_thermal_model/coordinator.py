@@ -48,6 +48,7 @@ from .const import (
     CONF_TARGET_MODE,
     CONF_TARGET_TEMPERATURE,
     CONF_UPDATE_INTERVAL_MINUTES,
+    CONF_ZONE_GROUP,
     CONF_ZONE_NAME,
     DEFAULT_ALLOW_UNTRUSTED,
     DEFAULT_HALF_LIFE_DAYS,
@@ -93,8 +94,15 @@ from .rtm_core.base import (
 )
 from .rtm_core.history_import import HistoryImportError, ParsedHistory, parse_history
 from .rtm_core.schedule import Rise, next_rise
+from .rtm_core.shared_prior import (
+    DEFAULT_PRIOR_INFO,
+    MAX_OWN_MATURITY,
+    PeerSummary,
+    build_group_prior,
+)
 from .schedule_feed import ScheduleFeed
 from .storage import STORAGE_SCHEMA, RTMStorage, StoredData
+from .zone_group import async_join, async_leave, async_peers, async_publish, normalize_group
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -219,6 +227,8 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             half_life_days=float(options.get(CONF_HALF_LIFE_DAYS, DEFAULT_HALF_LIFE_DAYS)),
             history_days=self.history_days,
         )
+        self.zone_group: str | None = normalize_group(options.get(CONF_ZONE_GROUP))
+        self.prior_info: dict[str, Any] = dict(DEFAULT_PRIOR_INFO)
         self.model: ThermalModel = create_model(self.model_config)
         self.forecast: WeatherForecast | None = (
             WeatherForecast(hass, self.inputs.weather) if self.inputs.weather else None
@@ -290,6 +300,9 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             else:
                 self.snapshot = model_data
         self.scorer = RunScorer.from_dict(stored.get("scoring"))
+        if self.zone_group:
+            async_join(self.hass, self.zone_group, self.config_entry.entry_id)
+            self._publish_to_group()
         self.last_fit = _parse_dt(stored.get("last_fit"))
         self.bootstrapped = bool(stored.get("bootstrapped")) and self.snapshot is not None
         self._async_subscribe()
@@ -346,6 +359,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
     async def async_unload(self) -> None:
         """Stop listening and persist the model."""
         self._unloading = True
+        async_leave(self.hass, self.config_entry.entry_id)
         self._async_unsubscribe()
         await self._async_flush_samples()
         await self._async_snapshot(force=True)
@@ -406,16 +420,50 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             _LOGGER.warning("Forecast of %s failed", self.inputs.weather, exc_info=True)
             return []
 
+    def _refresh_prior(self) -> None:
+        """Choose the prior of the next fit (model lock held, cheap: runs in the loop).
+
+        A zone in a group borrows the median of its mature peers, but only while its own
+        fit is not mature, so a well fitted room keeps learning from its own data. The
+        prior is an immutable copy: peers may unload while the executor fits.
+        """
+        prior = None
+        if self.zone_group and self.model.quality().maturity < MAX_OWN_MATURITY:
+            prior = build_group_prior(
+                async_peers(self.hass, self.zone_group, self.config_entry.entry_id)
+            )
+        self.model.set_prior(prior)
+        self.prior_info = prior.as_dict() if prior else dict(DEFAULT_PRIOR_INFO)
+
+    def _publish_to_group(self) -> None:
+        """Publish this zone's parameters and maturity to its group (model lock held)."""
+        if not self.zone_group or self._unloading:
+            return
+        params = self.model.parameters()
+        summary = (
+            PeerSummary(
+                self.zone_name,
+                params.heating_rate_k_per_h,
+                params.loss_rate_per_h,
+                self.model.quality().maturity,
+            )
+            if params is not None
+            else None
+        )
+        async_publish(self.hass, self.zone_group, self.config_entry.entry_id, summary)
+
     async def _async_fit_if_due(self, now: datetime, force: bool = False) -> bool:
         """Refit in the executor when due. Returns True when a fit succeeded."""
         async with self._lock:
             if not force and not self.model.fit_due(now):
                 return False
+            self._refresh_prior()
             try:
                 summary = await self.hass.async_add_executor_job(self.model.fit, now)
             except MODEL_ERRORS:
                 _LOGGER.warning("Fit of %s failed", self.zone_name, exc_info=True)
                 return False
+            self._publish_to_group()
         self.last_fit = now
         self.last_fit_summary = summary if isinstance(summary, dict) else None
         self._dirty = True
@@ -742,6 +790,8 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
         """Forget everything learnt (learning restarts from live samples)."""
         self._pending.clear()
         await self._async_model_job(self.model.reset)
+        self._publish_to_group()
+        self.prior_info = dict(DEFAULT_PRIOR_INFO)
         self.last_fit = None
         self.last_fit_summary = None
         self.scorer.reset()
