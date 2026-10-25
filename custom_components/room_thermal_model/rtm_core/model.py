@@ -32,6 +32,7 @@ from .quality import (
     experience_hours,
     maturity,
 )
+from .trust import FitFacts, FitTrust, assess_fit
 
 STATE_VERSION = 1
 MIN_FIT_HOURS = 3.0  # usable data needed before the first fit
@@ -280,6 +281,26 @@ class RCThermalModel(ThermalModel):
         return sum(vals) / len(vals) if vals else None
 
     # -- queries ------------------------------------------------------------------------
+    def trust(self, target_c: float) -> FitTrust | None:
+        """Verdict on the current fit for ``target_c`` (None before the first fit)."""
+        p, q = self._params, self._quality
+        if p is None or q is None:
+            return None
+        cfg = self.config
+        facts = FitFacts(
+            a=p["a"],
+            b=p["b"],
+            c=p["c"],
+            dead_time_minutes=p["d_minutes"],
+            max_dead_time_minutes=cfg.max_dead_time_minutes,
+            step_minutes=cfg.step_minutes,
+            heating_hours=q["heating_hours"],
+            rmse=q["rmse_c"],
+            baseline_rmse=q["baseline_rmse_c"],
+            episodes=q["episodes"],
+        )
+        return assess_fit(facts, target_c)
+
     def parameters(self) -> ThermalParameters | None:
         p = self._params
         if p is None:
@@ -356,6 +377,7 @@ class RCThermalModel(ThermalModel):
         reason.update(pinfo)
         reason["solve"] = info
         reason["status"] = "ok" if minutes is not None else "unreachable"
+        verdict = self.trust(target_c)
         return PreheatEstimate(
             minutes=minutes,
             reachable=minutes is not None,
@@ -364,6 +386,8 @@ class RCThermalModel(ThermalModel):
             outdoor_used_c=tout_eff if p["use_outdoor"] else None,
             max_reachable_c=t_inf,
             reason=reason,
+            trusted=verdict.trusted if verdict else None,
+            trust_reasons=verdict.reasons if verdict else (),
         )
 
     def coast(
