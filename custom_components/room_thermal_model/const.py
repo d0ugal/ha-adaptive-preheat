@@ -15,6 +15,8 @@ CONF_EFFORT_SENSOR: Final = "heating_effort_sensor"  # optional, %
 CONF_OUTDOOR_SENSOR: Final = "outdoor_temperature_sensor"  # optional
 CONF_WEATHER: Final = "weather_entity"  # optional, forecast (+ outdoor fallback)
 CONF_ARRIVAL_SENSOR: Final = "arrival_sensor"  # optional timestamp sensor
+CONF_SCHEDULE_ENTITY: Final = "schedule_entity"  # optional schedule helper (next block = arrival)
+CONF_SCHEDULE_TARGET_KEY: Final = "schedule_target_key"  # block data key holding the target
 
 # Options
 CONF_TARGET_MODE: Final = "target_mode"
@@ -26,6 +28,7 @@ CONF_HISTORY_DAYS: Final = "history_days"
 CONF_UPDATE_INTERVAL_MINUTES: Final = "update_interval_minutes"
 CONF_ALLOW_UNTRUSTED: Final = "allow_untrusted"
 
+DEFAULT_SCHEDULE_TARGET_KEY: Final = "target_temperature"
 DEFAULT_TARGET_MODE: Final = TARGET_MODE_FIXED
 DEFAULT_TARGET_TEMPERATURE: Final = 20.5
 DEFAULT_HALF_LIFE_DAYS: Final = 21
@@ -79,6 +82,11 @@ LEAD_MAX_ITERATIONS: Final = 10  # fixed-point iterations of the preheat lead ti
 LEAD_TOLERANCE_MINUTES: Final = 0.5  # lead time convergence threshold
 UNREACHABLE_MARGIN_K: Final = 0.5  # unreachable target: aim this far below the maximum
 PREHEAT_HOLD_MINUTES: Final = 30  # preheat_now stays on this long past the expected end
+
+SCHEDULE_REFRESH_MINUTES: Final = 5  # schedule.get_schedule is read at most this often...
+SCHEDULE_HORIZON_HOURS: Final = 24  # ...and looked at this far ahead
+ARRIVAL_SOURCE_SENSOR: Final = "sensor"
+ARRIVAL_SOURCE_SCHEDULE: Final = "schedule"
 
 # hvac_action values (standard HVACAction strings)
 HEATING_ACTIONS: Final = frozenset({"heating", "preheating"})

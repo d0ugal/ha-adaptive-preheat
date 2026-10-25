@@ -40,6 +40,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ARRIVAL_SOURCE_SCHEDULE,
+    ARRIVAL_SOURCE_SENSOR,
     CONF_ALLOW_UNTRUSTED,
     CONF_HALF_LIFE_DAYS,
     CONF_HISTORY_DAYS,
@@ -59,6 +61,7 @@ from .const import (
     PREHEAT_HOLD_MINUTES,
     SAMPLE_INTERVAL_MINUTES,
     SAVE_DELAY_SECONDS,
+    SCHEDULE_HORIZON_HOURS,
     SNAPSHOT_MIN_INTERVAL_S,
     STATUS_AT_TARGET,
     STATUS_LEARNING,
@@ -89,6 +92,8 @@ from .rtm_core.base import (
     ThermalParameters,
 )
 from .rtm_core.history_import import HistoryImportError, ParsedHistory, parse_history
+from .rtm_core.schedule import Rise, next_rise
+from .schedule_feed import ScheduleFeed
 from .storage import STORAGE_SCHEMA, RTMStorage, StoredData
 
 _LOGGER = logging.getLogger(__name__)
@@ -122,6 +127,10 @@ class ZoneData:
     scoring: ScoringSummary | None = None
     trusted: bool | None = None  # fit trust verdict (None before the first estimate)
     trust_reasons: tuple[str, ...] = ()
+    arrival_source: str | None = None  # "sensor" / "schedule" (what ``arrival`` came from)
+    arrival_target_c: float | None = None  # target to reach at the arrival
+    next_block_start: datetime | None = None  # next schedule rise (UTC), if a schedule is set
+    next_block_target_c: float | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -213,6 +222,11 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
         self.model: ThermalModel = create_model(self.model_config)
         self.forecast: WeatherForecast | None = (
             WeatherForecast(hass, self.inputs.weather) if self.inputs.weather else None
+        )
+        self.schedule: ScheduleFeed | None = (
+            ScheduleFeed(hass, self.inputs.schedule_entity, self.inputs.schedule_target_key)
+            if self.inputs.schedule_entity
+            else None
         )
         self.storage = RTMStorage(hass, entry.entry_id)
         self.snapshot: dict[str, Any] | None = None
@@ -343,7 +357,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
     def _async_handle_state_event(self, event: Event[EventStateChangedData]) -> None:
         if event.data["new_state"] is None or self._unloading:
             return
-        if event.data["entity_id"] != self.inputs.arrival_sensor:
+        if event.data["entity_id"] not in (self.inputs.arrival_sensor, self.inputs.schedule_entity):
             self._queue_sample(event.data["new_state"].last_updated)
         # Debounced by the coordinator (immediate first call, then 10 s cooldown).
         self.config_entry.async_create_background_task(
@@ -422,6 +436,15 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             self.hass.states.get(self.inputs.arrival_sensor) if self.inputs.arrival_sensor else None
         )
         arrival = parse_arrival(arrival_state, now)
+        arrival_source = ARRIVAL_SOURCE_SENSOR if arrival is not None else None
+        arrival_target = target_c
+        rise = await self._async_next_rise(now, target_c)
+        if rise is not None and (arrival is None or rise.start < arrival):
+            arrival, arrival_source, arrival_target = (
+                rise.start,
+                ARRIVAL_SOURCE_SCHEDULE,
+                rise.target_c,
+            )
         indoor = current.indoor_c
         outdoor = current.outdoor_c
         estimate: PreheatEstimate | None = None
@@ -442,8 +465,13 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
                         minutes = (arrival - now).total_seconds() / 60.0
                         coast_c = self.model.coast(now, indoor, minutes, outdoor, forecast)
                         if not untrusted:
+                            lead_estimate = estimate
+                            if arrival_target != target_c:
+                                lead_estimate = self.model.preheat(
+                                    now, indoor, arrival_target, outdoor, forecast
+                                )
                             lead = self._lead_minutes(
-                                now, indoor, target_c, outdoor, forecast, estimate, minutes
+                                now, indoor, arrival_target, outdoor, forecast, lead_estimate, minutes
                             )
         except MODEL_ERRORS as err:
             raise UpdateFailed(
@@ -501,10 +529,27 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             scoring=self.scorer.summary(),
             trusted=estimate.trusted if estimate is not None else None,
             trust_reasons=estimate.trust_reasons if estimate is not None else (),
+            arrival_source=arrival_source,
+            arrival_target_c=arrival_target if arrival is not None else None,
+            next_block_start=rise.start if rise else None,
+            next_block_target_c=rise.target_c if rise else None,
         )
         self._schedule_timers(data, now)
         await self._async_snapshot(force=fitted)
         return data
+
+    async def _async_next_rise(self, now: datetime, target_c: float) -> Rise | None:
+        """Next schedule block that raises the target (UTC start), None without a schedule."""
+        if self.schedule is None:
+            return None
+        blocks = await self.schedule.async_blocks(now)
+        found = next_rise(
+            blocks,
+            dt_util.as_local(now),
+            target_c,
+            timedelta(hours=SCHEDULE_HORIZON_HOURS),
+        )
+        return Rise(dt_util.as_utc(found.start), found.target_c) if found else None
 
     def _lead_minutes(
         self,
@@ -569,6 +614,11 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
     @callback
     def _async_timer_fired(self, _now: datetime) -> None:
         self.async_update_listeners()
+        if self.schedule is not None and not self._unloading:
+            # a block started: look at the next one (debounced like state refreshes)
+            self.config_entry.async_create_background_task(
+                self.hass, self.async_request_refresh(), f"{DOMAIN}_timer_refresh"
+            )
 
     # ------------------------------------------------------------------ storage
 

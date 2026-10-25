@@ -49,8 +49,11 @@ from .const import (
     CONF_EFFORT_SENSOR,
     CONF_OUTDOOR_SENSOR,
     CONF_ROOM_SENSOR,
+    CONF_SCHEDULE_ENTITY,
+    CONF_SCHEDULE_TARGET_KEY,
     CONF_WEATHER,
     COOLING_ACTIONS,
+    DEFAULT_SCHEDULE_TARGET_KEY,
     FALLBACK_EFFORT_MARGIN_K,
     HEATING_ACTIONS,
     NON_HEATING_ACTIONS,
@@ -72,6 +75,8 @@ class ZoneInputs:
     outdoor_sensor: str | None = None
     weather: str | None = None
     arrival_sensor: str | None = None
+    schedule_entity: str | None = None
+    schedule_target_key: str = DEFAULT_SCHEDULE_TARGET_KEY
 
     @classmethod
     def from_data(cls, data: Any) -> ZoneInputs:
@@ -83,6 +88,10 @@ class ZoneInputs:
             outdoor_sensor=data.get(CONF_OUTDOOR_SENSOR) or None,
             weather=data.get(CONF_WEATHER) or None,
             arrival_sensor=data.get(CONF_ARRIVAL_SENSOR) or None,
+            schedule_entity=data.get(CONF_SCHEDULE_ENTITY) or None,
+            schedule_target_key=str(
+                data.get(CONF_SCHEDULE_TARGET_KEY) or DEFAULT_SCHEDULE_TARGET_KEY
+            ).strip(),
         )
 
     @property
@@ -103,7 +112,13 @@ class ZoneInputs:
     @property
     def all_entities(self) -> list[str]:
         """Every configured input entity."""
-        return [*self.sample_entities, *([self.arrival_sensor] if self.arrival_sensor else [])]
+        extra = [e for e in (self.arrival_sensor, self.schedule_entity) if e]
+        return [*self.sample_entities, *extra]
+
+    @property
+    def has_arrival(self) -> bool:
+        """True when an arrival sensor or a schedule drives preheat start / now."""
+        return bool(self.arrival_sensor or self.schedule_entity)
 
 
 def to_float(value: Any) -> float | None:

@@ -25,6 +25,8 @@ from custom_components.room_thermal_model.const import (  # noqa: E402
     CONF_EFFORT_SENSOR,
     CONF_OUTDOOR_SENSOR,
     CONF_ROOM_SENSOR,
+    CONF_SCHEDULE_ENTITY,
+    CONF_SCHEDULE_TARGET_KEY,
     CONF_TARGET_MODE,
     CONF_TARGET_TEMPERATURE,
     CONF_WEATHER,
@@ -47,6 +49,7 @@ EFFORT = "sensor.living_room_valve"
 OUTDOOR = "sensor.outdoor_temperature"
 WEATHER = "weather.home"
 ARRIVAL = "sensor.house_next_return_eta"
+SCHEDULE = "schedule.living_room_heating"
 ZONE = "Living Room"
 SLUG = "living_room"
 
@@ -99,7 +102,11 @@ def set_inputs(hass: HomeAssistant, full: bool = False) -> None:
 
 
 def make_entry(
-    hass: HomeAssistant, full: bool = False, arrival: bool = False, **options: Any
+    hass: HomeAssistant,
+    full: bool = False,
+    arrival: bool = False,
+    schedule: str | None = None,
+    **options: Any,
 ) -> MockConfigEntry:
     """Config entry of the test zone."""
     data: dict[str, Any] = {CONF_ZONE_NAME: ZONE, CONF_CLIMATE: CLIMATE}
@@ -112,6 +119,10 @@ def make_entry(
         }
     if arrival:
         data[CONF_ARRIVAL_SENSOR] = ARRIVAL
+    if schedule:
+        data[CONF_SCHEDULE_ENTITY] = SCHEDULE
+        if schedule != "default":
+            data[CONF_SCHEDULE_TARGET_KEY] = schedule
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=ZONE,
