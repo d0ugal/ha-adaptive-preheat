@@ -10,3 +10,4 @@ htmlcov/
 logs/
 *.log
 home_return_predictor_diagnostics_*.json
+.claude/
