@@ -22,6 +22,16 @@ The model core, `custom_components/room_thermal_model/rtm_core/`, is standard-li
 with no Home Assistant imports, behind the `ThermalModel` interface. New learning logic
 belongs there so it stays testable alone. Run scoring (`rtm_core/scoring.py`) is an example.
 
+## History import and the export script
+
+`room_thermal_model.import_history` reads a JSON-lines file (format in the README) with
+`rtm_core/history_import.py`, a pure parser that rejects the whole file on any bad line.
+`scripts/export_prometheus_history.py` builds such a file from any Prometheus-compatible
+`query_range` API (stdlib only, chunks below 11000 points, one series per expression). Its
+pure parts and a run against a local HTTP server are covered by
+`tests/model/test_export_prometheus_history.py`. The stored model grid is run-length encoded
+(`rtm_core/grid.py`); the plain columns of earlier snapshots are still read.
+
 ## Commits and pull requests
 
 - Conventional commits (`feat:`, `fix:`, `build:`, `ci:`, `docs:`, `test:`, `chore:`);
