@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/d0ugal/ha-room-thermal-model/compare/v0.2.1...v0.2.2) (2026-10-25)
+
+
+### Documentation
+
+* describe the automatic uv.lock refresh ([adfe2cc](https://github.com/d0ugal/ha-room-thermal-model/commit/adfe2ccaa34af5faefb76635100d22d14bdebd79))
+
 ## [0.2.1](https://github.com/d0ugal/ha-room-thermal-model/compare/v0.2.0...v0.2.1) (2026-10-25)
 
 
