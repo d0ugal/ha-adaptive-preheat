@@ -65,6 +65,7 @@ async def async_get_config_entry_diagnostics(
             if forecast
             else None
         ),
+        "scoring": coordinator.scorer.to_dict(),
         "zone": zone,
         "model": coordinator.snapshot,
     }

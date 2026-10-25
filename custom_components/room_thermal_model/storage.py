@@ -7,8 +7,9 @@ Stored document (``.storage/room_thermal_model.<entry_id>``)::
       "model": {...},              # ThermalModel.to_dict() or null
       "last_fit": "2026-...",      # ISO timestamp of the last successful fit or null
       "bootstrapped": true,        # recorder history already merged once
-      "inputs": ["climate...", ...] # sorted sample entities the model was learnt from
+      "inputs": ["climate...", ...], # sorted sample entities the model was learnt from
                                    # (null/missing in older documents: accepted as-is)
+      "scoring": {...}             # RunScorer.to_dict() or null (missing in older documents)
     }
 """
 
@@ -35,6 +36,7 @@ def empty_document() -> StoredData:
         "last_fit": None,
         "bootstrapped": False,
         "inputs": None,
+        "scoring": None,
     }
 
 
