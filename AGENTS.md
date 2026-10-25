@@ -52,6 +52,6 @@ Entities use `translation_key == key`, `unique_id = f"{entry_id}_{key}"` and an 
 
 - Conventional commits (checked in CI; release-please reads them), atomic commits, never push to `main`: branch, PR, wait for green.
 - Every change needs a test; coverage below 95% fails.
-- Releases are cut by release-please. It bumps `pyproject.toml`, `manifest.json` and the changelog but **cannot update `uv.lock`**, so after each release `uv sync --locked` fails in CI until a PR runs `uv lock`.
+- Releases are cut by release-please, which bumps `pyproject.toml`, `manifest.json` and the changelog but cannot update `uv.lock`. The `refresh-lock` job in `release-please.yml` runs `uv lock` on the release PR branch; if `uv sync --locked` ever fails on `main` after a release, that job failed and the lock needs a manual `uv lock` PR.
 - Actions are pinned by SHA. The compatibility matrix maps `pytest-homeassistant-custom-component` versions to Home Assistant versions; the mapping and how to bump the minimum are in the header of `.github/workflows/compat.yml`.
 - A component change deploys only after a release and a full Home Assistant restart, not a reload.

@@ -52,9 +52,12 @@ documented at the top of `.github/workflows/compat.yml`.
 1. Merge pull requests with conventional commit titles to `main`.
 2. release-please opens a "chore(main): release X.Y.Z" pull request: it bumps `pyproject.toml`,
    `manifest.json` and the changelog. Merging it tags the release and publishes it.
-3. **Refresh `uv.lock`.** release-please cannot update the lock, so after each release
-   `uv sync --locked` fails until a pull request runs `uv lock` and commits the new version of
-   `ha-room-thermal-model` in `uv.lock` (see `build: refresh uv.lock for v0.2.0`).
+3. `uv.lock` is refreshed for you. release-please bumps the version in `pyproject.toml` but
+   cannot update `uv.lock`, which would make `uv sync --locked` fail on `main` after every
+   release. The `refresh-lock` job in `release-please.yml` runs `uv lock` on the release pull
+   request's branch and commits the result. That push uses `GITHUB_TOKEN`, so the checks on
+   the release pull request do not re-run; `main` is checked when it merges. If the job ever
+   fails, `uv lock` and commit `uv.lock` by hand (`build: refresh uv.lock for vX.Y.Z`).
 
 ## Deploying to a Home Assistant host
 
