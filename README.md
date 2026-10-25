@@ -68,6 +68,8 @@ Settings → Devices & services → Add integration → **Room Thermal Model**.
 | Outdoor temperature sensor | no | current value and history |
 | Weather entity | no | forecast for the preheat window (hourly → twice daily → daily) and outdoor fallback |
 | Arrival sensor | no | any timestamp sensor (e.g. `sensor.house_next_return_eta` from [Home Return Predictor](https://github.com/giogandola98/ha-home-return-predictor)); enables preheat start / preheat now |
+| Schedule | no | a `schedule` helper (e.g. `schedule.living_room_heating`); its next block that raises the target acts as the arrival, see [Schedule-aware preheat](#schedule-aware-preheat) |
+| Schedule target key | no | data field of each schedule block holding the target (default `target_temperature`) |
 
 Options: target temperature (fixed, default 20.5 °C, or follow the climate's target),
 data half-life (21 days), history window (30 days), update interval (5 min), and
@@ -82,8 +84,8 @@ expect larger errors.
 | `sensor.<zone>_preheat_minutes` | minutes of full heating needed to reach the target; unknown while learning, when the fit is not trusted, when unreachable or without outdoor data (attribute `reason`, e.g. `untrusted_fit`, `unreachable`, `no_outdoor`; attributes `trusted`, `trust_reasons`) |
 | `sensor.<zone>_max_reachable_temperature` | highest temperature reachable at the outdoor temperature averaged over the preheat window |
 | `sensor.<zone>_model_maturity` | 0–100 %; attributes `rmse_c`, `baseline_rmse_c`, `duration_mae_minutes`, `heating_hours`, `cooling_hours`, `trusted`, `trust_reasons` |
-| `sensor.<zone>_preheat_start` | latest time to start heating to be at the target on arrival (only with an arrival sensor). The room keeps cooling until then, so it is computed from the temperature the room will have at the start time, not the current one. When the target is unreachable it aims at 0.5 K below the max reachable temperature instead |
-| `binary_sensor.<zone>_preheat_now` | on when it is time to start heating (only with an arrival sensor). It latches: once on it stays on until the arrival, unless the arrival moves more than (needed minutes + 30 min) away |
+| `sensor.<zone>_preheat_start` | latest time to start heating to be at the target on arrival (only with an arrival sensor or a schedule). The room keeps cooling until then, so it is computed from the temperature the room will have at the start time, not the current one. When the target is unreachable it aims at 0.5 K below the max reachable temperature instead |
+| `binary_sensor.<zone>_preheat_now` | on when it is time to start heating (only with an arrival sensor or a schedule). It latches: once on it stays on until the arrival, unless the arrival moves more than (needed minutes + 30 min) away |
 | `sensor.<zone>_time_constant`, `_heating_rate`, `_dead_time` | diagnostic: learnt parameters |
 | `sensor.<zone>_last_run_error`, `_run_mae` | diagnostic: how live predictions turned out (see below) |
 
@@ -207,7 +209,7 @@ history options did not need a new range for accuracy. The limits only grew so a
 can be kept. A year of 5 minute rows costs about 30 MB of memory while loading, a 1 to 6 s fit
 in the executor (hourly, only when new data arrived), and 0.1 to 0.3 MB in the stored model.
 
-## Example: start heating in time
+## Example: start heating in time (arrival sensor)
 
 ```yaml
 automation:
@@ -226,6 +228,62 @@ automation:
 
 With Home Return Predictor's VTherm blueprint, set the blueprint's "preheat minutes
 sensor" input to `sensor.<zone>_preheat_minutes`.
+
+## Schedule-aware preheat
+
+`preheat_minutes` answers "how long to reach the target from now". Often the real question
+is "when must heating start so the room is at the next block's target when that block
+begins". Point the zone at a Home Assistant `schedule` helper and it answers that without an
+arrival sensor.
+
+Give each block of the schedule a data field with the target, for example
+`target_temperature: 21` (the field name is configurable). Example for a room with the
+schedule `schedule.living_room_heating`:
+
+| Block | Data |
+|---|---|
+| Mon-Fri 06:30-08:30 | `target_temperature: 21` |
+| Mon-Fri 17:00-22:00 | `target_temperature: 21` |
+
+At 05:00 on a weekday with the room at 17 C, the next rise is 06:30 at 21 C. If the model
+needs 70 minutes from the temperature the room will have by then, `preheat_start` is
+about 05:20 and `binary_sensor.living_room_preheat_now` turns on at that moment, stays on
+until 06:30, and then moves on to the next block (17:00).
+
+How it works:
+
+- the schedule is read with `schedule.get_schedule` at most every 5 minutes and whenever the
+  schedule entity changes state; if the service fails this is logged once and the zone
+  behaves as without a schedule;
+- the next rise is the first block start within 24 hours whose target is more than 0.5 K above
+  the target in force before it. Inside a block, a block that starts right after it is compared
+  with it; after a gap (or outside any block) it is compared with the zone's current target,
+  or, when inside a block, any block counts. Blocks that run to midnight, days without blocks,
+  DST changes (wall-clock times in Home Assistant's time zone) and malformed blocks are handled;
+- the lead time is computed for the rise's own target, not the room's current one;
+- `preheat_minutes` is unchanged (minutes to the current target) and gains the attribute
+  `next_block_target_c`. `preheat_start` and `preheat_now` carry `arrival`,
+  `arrival_source` (`schedule` or `sensor`), `arrival_target_c`, and `preheat_start` also
+  `next_block_start` and `next_block_target_c`;
+- with both an arrival sensor and a schedule, the sooner arrival wins (a sensor arrival aims
+  at the zone's current target); the schedule's next block is still reported as attributes.
+
+```yaml
+automation:
+  - alias: Living room schedule preheat
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.living_room_preheat_now
+        to: "on"
+    actions:
+      - action: climate.set_temperature
+        target:
+          entity_id: climate.living_room
+        data:
+          temperature: "{{ state_attr('sensor.living_room_preheat_start', 'next_block_target_c') }}"
+```
+
+The heating then reaches the block's target as the block begins, when the schedule takes over.
 
 ## Development
 
