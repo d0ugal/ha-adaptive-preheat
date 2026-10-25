@@ -163,22 +163,30 @@ class Grid:
 
     # -- compact JSON form ------------------------------------------------------------
     def to_dict(self) -> dict[str, Any]:
-        """Integer-scaled columns: °C × 100, effort × 1000, excluded as row indices."""
+        """Run-length encoded integer columns: °C × 100, effort × 1000, excluded as indices.
+
+        Each column is a flat ``[value, run, value, run, ...]`` list (``value`` is ``None``
+        for missing rows). Outdoor and effort hold long runs, so a year of 5 minute rows
+        stores in about a tenth of the plain form. ``from_dict`` also reads the earlier
+        plain ``*_c100`` / ``*_e3`` columns.
+        """
         return {
             "step_minutes": self.step_minutes,
             "start_ts": self.start_ts,
-            "indoor_c100": [None if v is None else round(v * 100) for v in self.indoor],
-            "outdoor_c100": [None if v is None else round(v * 100) for v in self.outdoor],
-            "effort_e3": [None if v is None else round(v * 1000) for v in self.effort],
+            "indoor_rle": rle_encode([None if v is None else round(v * 100) for v in self.indoor]),
+            "outdoor_rle": rle_encode(
+                [None if v is None else round(v * 100) for v in self.outdoor]
+            ),
+            "effort_rle": rle_encode([None if v is None else round(v * 1000) for v in self.effort]),
             "excluded_rows": [i for i, ex in enumerate(self.excluded) if ex],
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Grid:
-        indoor = [None if v is None else v / 100.0 for v in data.get("indoor_c100", [])]
+        indoor = [None if v is None else v / 100.0 for v in _column(data, "indoor")]
         n = len(indoor)
-        outdoor = [None if v is None else v / 100.0 for v in data.get("outdoor_c100", [])]
-        effort = [None if v is None else v / 1000.0 for v in data.get("effort_e3", [])]
+        outdoor = [None if v is None else v / 100.0 for v in _column(data, "outdoor")]
+        effort = [None if v is None else v / 1000.0 for v in _column(data, "effort")]
         if len(outdoor) != n or len(effort) != n:
             raise ValueError("inconsistent grid columns")
         excluded = [False] * n
@@ -187,6 +195,42 @@ class Grid:
                 excluded[i] = True
         start = data.get("start_ts")
         return cls(float(data["step_minutes"]), start, indoor, outdoor, effort, excluded)
+
+
+def rle_encode(values: list[int | None]) -> list[int | None]:
+    """Flat ``[value, run, ...]`` run-length encoding."""
+    out: list[int | None] = []
+    i = 0
+    n = len(values)
+    while i < n:
+        v = values[i]
+        j = i + 1
+        while j < n and values[j] == v:
+            j += 1
+        out += [v, j - i]
+        i = j
+    return out
+
+
+def rle_decode(pairs: list[int | None]) -> list[int | None]:
+    """Inverse of :func:`rle_encode` (raises ``ValueError`` on a malformed list)."""
+    if len(pairs) % 2:
+        raise ValueError("malformed run-length column")
+    out: list[int | None] = []
+    for i in range(0, len(pairs), 2):
+        run = pairs[i + 1]
+        if not isinstance(run, int) or run < 0:
+            raise ValueError("malformed run length")
+        out += [pairs[i]] * run
+    return out
+
+
+def _column(data: dict[str, Any], name: str) -> list[int | None]:
+    """A stored column: run-length form, else the earlier plain list."""
+    if f"{name}_rle" in data:
+        return rle_decode(data[f"{name}_rle"])
+    legacy = "effort_e3" if name == "effort" else f"{name}_c100"
+    return list(data.get(legacy, []))
 
 
 def resample(
