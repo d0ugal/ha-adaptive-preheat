@@ -32,6 +32,16 @@ pure parts and a run against a local HTTP server are covered by
 `tests/model/test_export_prometheus_history.py`. The stored model grid is run-length encoded
 (`rtm_core/grid.py`); the plain columns of earlier snapshots are still read.
 
+## Zone groups
+
+`rtm_core/shared_prior.py` (pure) builds a `GroupPrior` from `PeerSummary` values;
+`zone_group.py` keeps the registry in `hass.data[DOMAIN]["zone_groups"]` (frozen summaries
+only, no references to coordinators). The coordinator joins on setup, publishes after every
+fit and leaves on unload; before a fit, under the model lock and in the event loop, it picks
+the prior and hands the immutable copy to `model.set_prior`, so peers unloading while the
+executor fits cannot change it. `ThermalModel.set_prior` is an optional hook (no-op by
+default). The thresholds are `MIN_PEER_MATURITY` and `MAX_OWN_MATURITY` (both 0.3).
+
 ## Commits and pull requests
 
 The repository is public: commit with the GitHub noreply identity, use generic names in code, tests, docs and PR text, and never include data from a real home. See the `Privacy` check below.
