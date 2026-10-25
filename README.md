@@ -8,6 +8,10 @@ It works with **any `climate` entity** (TRVs, generic_thermostat, Versatile Ther
 smart thermostats…) and only reads standard Home Assistant attributes. It never controls
 anything: it only exposes sensors.
 
+This is a fork of [giogandola98/ha-room-thermal-model](https://github.com/giogandola98/ha-room-thermal-model)
+with CI, release tooling, strict typing of the core, a coverage gate and [run scoring](#run-scoring)
+added. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
 ## How it works
 
 Each zone is modelled as a single thermal mass that gains heat from the heater and loses
@@ -45,7 +49,7 @@ from [Ecronika/ha-preheat](https://github.com/Ecronika/ha-preheat) (MIT, © 2025
 
 ## Installation
 
-HACS → ⋮ → **Custom repositories** → `https://github.com/giogandola98/ha-room-thermal-model`,
+HACS → ⋮ → **Custom repositories** → `https://github.com/d0ugal/ha-room-thermal-model`,
 category **Integration** → install → restart Home Assistant.
 Manual: copy `custom_components/room_thermal_model/` into your config directory.
 
@@ -122,12 +126,14 @@ sensor" input to `sensor.<zone>_preheat_minutes`.
 
 ```bash
 uv sync --locked --managed-python --python 3.13
-uv run pytest             # pure model tests (no HA) + integration tests
-uv run python scripts/simulate.py --days 30   # synthetic rooms: learning curve
+make test       # pure model tests (no HA) + integration tests, 95% branch coverage gate
+make lint       # ruff
+make simulate   # synthetic rooms: learning curve
 ```
 
 The model core (`rtm_core/`) is pure standard-library Python behind a `ThermalModel`
-interface, so it can be tested alone or replaced by another backend.
+interface, so it can be tested alone or replaced by another backend. Setup, CI, releases and
+deployment are described in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## Limitations
 

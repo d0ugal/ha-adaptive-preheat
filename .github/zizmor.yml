@@ -1,11 +1,7 @@
-# Temporary waivers for ci.yml and validate.yml. The ci/hygiene PR pins and
-# hardens those files; remove these entries once it has merged.
+# The official HACS and hassfest validation actions are referenced by branch
+# (hacs/action@main, home-assistant/actions/hassfest@master), as their documentation
+# recommends, so they are exempt from the pinning rule.
 rules:
   unpinned-uses:
     ignore:
-      - ci.yml
-      - validate.yml
-  excessive-permissions:
-    ignore:
-      - ci.yml
       - validate.yml
