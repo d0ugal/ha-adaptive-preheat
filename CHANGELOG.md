@@ -6,6 +6,7 @@
 ### Documentation
 
 * add a development guide, fork note and fork install URL ([22f1e91](https://github.com/d0ugal/ha-room-thermal-model/commit/22f1e91e5985534b413e8be248b18e2c72b7d496))
+* add AGENTS.md with CLAUDE.md symlink ([380428a](https://github.com/d0ugal/ha-room-thermal-model/commit/380428a6467b99d38415ca84ff267cfbcdf1400c))
 
 ## [0.2.0](https://github.com/d0ugal/ha-room-thermal-model/compare/v0.1.1...v0.2.0) (2026-10-25)
 
