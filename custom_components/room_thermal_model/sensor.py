@@ -104,6 +104,8 @@ class PreheatMinutesSensor(RTMSensor):
             "forecast_used": zone.forecast_used,
             "maturity": round(zone.quality.maturity * 100, 1),
             "reason": zone.status,
+            "trusted": zone.trusted,
+            "trust_reasons": list(zone.trust_reasons),
             "details": dict(estimate.reason) if estimate else {},
             "arrival": zone.arrival.isoformat() if zone.arrival else None,
             "coast_c": _round(zone.coast_c),
@@ -183,6 +185,8 @@ class ModelMaturitySensor(RTMSensor):
             "episodes": quality.episodes,
             "last_fit": zone.last_fit.isoformat() if zone.last_fit else None,
             "bootstrapping": self.coordinator.bootstrapping,
+            "trusted": zone.trusted,
+            "trust_reasons": list(zone.trust_reasons),
         }
 
 

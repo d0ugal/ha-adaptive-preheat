@@ -7,6 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.room_thermal_model.const import (
+    CONF_ALLOW_UNTRUSTED,
     CONF_ARRIVAL_SENSOR,
     CONF_CLIMATE,
     CONF_EFFORT_SENSOR,
@@ -138,11 +139,13 @@ async def test_options_flow(hass: HomeAssistant) -> None:
             CONF_HALF_LIFE_DAYS: 14,
             CONF_HISTORY_DAYS: 60,
             CONF_UPDATE_INTERVAL_MINUTES: 10,
+            CONF_ALLOW_UNTRUSTED: True,
         },
     )
     await hass.async_block_till_done()
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options == {
+        CONF_ALLOW_UNTRUSTED: True,
         CONF_TARGET_MODE: "climate",
         CONF_TARGET_TEMPERATURE: 19.5,
         CONF_HALF_LIFE_DAYS: 14.0,
@@ -152,6 +155,7 @@ async def test_options_flow(hass: HomeAssistant) -> None:
     coordinator = entry.runtime_data
     assert coordinator.target_mode == "climate"
     assert coordinator.history_days == 60
+    assert coordinator.allow_untrusted is True
     assert coordinator.model_config.half_life_days == 14.0
     assert coordinator.update_interval.total_seconds() == 600
 

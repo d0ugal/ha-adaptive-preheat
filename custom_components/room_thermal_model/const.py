@@ -24,12 +24,14 @@ CONF_TARGET_TEMPERATURE: Final = "target_temperature"
 CONF_HALF_LIFE_DAYS: Final = "half_life_days"
 CONF_HISTORY_DAYS: Final = "history_days"
 CONF_UPDATE_INTERVAL_MINUTES: Final = "update_interval_minutes"
+CONF_ALLOW_UNTRUSTED: Final = "allow_untrusted"
 
 DEFAULT_TARGET_MODE: Final = TARGET_MODE_FIXED
 DEFAULT_TARGET_TEMPERATURE: Final = 20.5
 DEFAULT_HALF_LIFE_DAYS: Final = 21
 DEFAULT_HISTORY_DAYS: Final = 30
 DEFAULT_UPDATE_INTERVAL_MINUTES: Final = 5
+DEFAULT_ALLOW_UNTRUSTED: Final = False
 
 # Services
 SERVICE_RETRAIN: Final = "retrain"
@@ -89,6 +91,7 @@ STATUS_NO_TEMPERATURE: Final = "no_temperature"
 STATUS_UNREACHABLE: Final = "unreachable"
 STATUS_NO_OUTDOOR: Final = "no_outdoor"
 STATUS_AT_TARGET: Final = "at_target"
+STATUS_UNTRUSTED: Final = "untrusted_fit"
 
 # Service fields
 ATTR_CONFIG_ENTRY_ID: Final = "config_entry_id"

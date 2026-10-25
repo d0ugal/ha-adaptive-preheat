@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -39,12 +39,14 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_ALLOW_UNTRUSTED,
     CONF_HALF_LIFE_DAYS,
     CONF_HISTORY_DAYS,
     CONF_TARGET_MODE,
     CONF_TARGET_TEMPERATURE,
     CONF_UPDATE_INTERVAL_MINUTES,
     CONF_ZONE_NAME,
+    DEFAULT_ALLOW_UNTRUSTED,
     DEFAULT_HALF_LIFE_DAYS,
     DEFAULT_HISTORY_DAYS,
     DEFAULT_TARGET_MODE,
@@ -63,6 +65,7 @@ from .const import (
     STATUS_NO_TEMPERATURE,
     STATUS_OK,
     STATUS_UNREACHABLE,
+    STATUS_UNTRUSTED,
     TARGET_MODE_CLIMATE,
     UNREACHABLE_MARGIN_K,
 )
@@ -115,6 +118,8 @@ class ZoneData:
     latched: bool = False  # preheat_now held on (hysteresis)
     last_fit: datetime | None = None
     scoring: ScoringSummary | None = None
+    trusted: bool | None = None  # fit trust verdict (None before the first estimate)
+    trust_reasons: tuple[str, ...] = ()
     extra: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -184,6 +189,9 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
         self.target_mode: str = options.get(CONF_TARGET_MODE, DEFAULT_TARGET_MODE)
         self.fixed_target: float = float(
             options.get(CONF_TARGET_TEMPERATURE, DEFAULT_TARGET_TEMPERATURE)
+        )
+        self.allow_untrusted: bool = bool(
+            options.get(CONF_ALLOW_UNTRUSTED, DEFAULT_ALLOW_UNTRUSTED)
         )
         self.history_days: float = float(options.get(CONF_HISTORY_DAYS, DEFAULT_HISTORY_DAYS))
         self.model_config = ModelConfig(
@@ -406,6 +414,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
         indoor = current.indoor_c
         outdoor = current.outdoor_c
         estimate: PreheatEstimate | None = None
+        untrusted = False
         coast_c: float | None = None
         lead: float | None = None
         try:
@@ -414,12 +423,17 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
                 quality = self.model.quality()
                 if indoor is not None and parameters is not None:
                     estimate = self.model.preheat(now, indoor, target_c, outdoor, forecast)
+                    untrusted = estimate.trusted is False and not self.allow_untrusted
+                    if untrusted:
+                        # parameters still publish; the estimate is withheld everywhere
+                        estimate = replace(estimate, minutes=None)
                     if arrival is not None:
                         minutes = (arrival - now).total_seconds() / 60.0
                         coast_c = self.model.coast(now, indoor, minutes, outdoor, forecast)
-                        lead = self._lead_minutes(
-                            now, indoor, target_c, outdoor, forecast, estimate, minutes
-                        )
+                        if not untrusted:
+                            lead = self._lead_minutes(
+                                now, indoor, target_c, outdoor, forecast, estimate, minutes
+                            )
         except MODEL_ERRORS as err:
             raise UpdateFailed(
                 translation_domain=DOMAIN,
@@ -432,6 +446,8 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             status = STATUS_LEARNING
         elif estimate.reason.get("status") == "no_outdoor":
             status = STATUS_NO_OUTDOOR
+        elif untrusted:
+            status = STATUS_UNTRUSTED
         elif not estimate.reachable:
             status = STATUS_UNREACHABLE
         elif estimate.minutes is None:
@@ -472,6 +488,8 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             latched=latched,
             last_fit=self.last_fit,
             scoring=self.scorer.summary(),
+            trusted=estimate.trusted if estimate is not None else None,
+            trust_reasons=estimate.trust_reasons if estimate is not None else (),
         )
         self._schedule_timers(data, now)
         await self._async_snapshot(force=fitted)

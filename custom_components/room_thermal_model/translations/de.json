@@ -65,14 +65,16 @@
           "target_temperature": "Festes Ziel",
           "half_life_days": "Halbwertszeit des Verlaufs",
           "history_days": "Verlauf zum Lernen",
-          "update_interval_minutes": "Aktualisierungsintervall"
+          "update_interval_minutes": "Aktualisierungsintervall",
+          "allow_untrusted": "Unzuverlässige Anpassungen veröffentlichen"
         },
         "data_description": {
           "target_mode": "Ein festes Ziel verwenden oder der Solltemperatur des Thermostats folgen.",
           "target_temperature": "Ziel im festen Modus (auch Rückfallwert, wenn das Thermostat keine Solltemperatur hat).",
           "half_life_days": "Ältere Daten zählen nach so vielen Tagen nur noch halb (passt sich den Jahreszeiten an).",
           "history_days": "Tage des Recorder-Verlaufs, die beim ersten Start und durch die Aktion Neu trainieren geladen werden.",
-          "update_interval_minutes": "Wie oft die Schätzung neu berechnet wird, in Minuten."
+          "update_interval_minutes": "Wie oft die Schätzung neu berechnet wird, in Minuten.",
+          "allow_untrusted": "Vorheizminuten auch dann veröffentlichen, wenn die Anpassung unzuverlässig wirkt (Parameter am Limit, zu wenig Heizdaten, kein Vorteil gegenüber Persistenz). Standardmäßig aus: Die Schätzung ist dann unbekannt mit dem Grund untrusted_fit."
         }
       }
     }

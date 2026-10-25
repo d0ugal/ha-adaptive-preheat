@@ -8,6 +8,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlowWithReload
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     EntitySelector,
     EntitySelectorConfig,
     NumberSelector,
@@ -20,6 +21,7 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
+    CONF_ALLOW_UNTRUSTED,
     CONF_ARRIVAL_SENSOR,
     CONF_CLIMATE,
     CONF_EFFORT_SENSOR,
@@ -32,6 +34,7 @@ from .const import (
     CONF_UPDATE_INTERVAL_MINUTES,
     CONF_WEATHER,
     CONF_ZONE_NAME,
+    DEFAULT_ALLOW_UNTRUSTED,
     DEFAULT_HALF_LIFE_DAYS,
     DEFAULT_HISTORY_DAYS,
     DEFAULT_TARGET_MODE,
@@ -193,6 +196,7 @@ class RoomThermalModelOptionsFlow(OptionsFlowWithReload):
                     CONF_HALF_LIFE_DAYS: float(user_input[CONF_HALF_LIFE_DAYS]),
                     CONF_HISTORY_DAYS: int(user_input[CONF_HISTORY_DAYS]),
                     CONF_UPDATE_INTERVAL_MINUTES: int(user_input[CONF_UPDATE_INTERVAL_MINUTES]),
+                    CONF_ALLOW_UNTRUSTED: bool(user_input.get(CONF_ALLOW_UNTRUSTED, False)),
                 }
             )
         current = {
@@ -201,6 +205,7 @@ class RoomThermalModelOptionsFlow(OptionsFlowWithReload):
             CONF_HALF_LIFE_DAYS: DEFAULT_HALF_LIFE_DAYS,
             CONF_HISTORY_DAYS: DEFAULT_HISTORY_DAYS,
             CONF_UPDATE_INTERVAL_MINUTES: DEFAULT_UPDATE_INTERVAL_MINUTES,
+            CONF_ALLOW_UNTRUSTED: DEFAULT_ALLOW_UNTRUSTED,
             **self.config_entry.options,
         }
         schema = vol.Schema(
@@ -215,6 +220,9 @@ class RoomThermalModelOptionsFlow(OptionsFlowWithReload):
                 vol.Required(CONF_UPDATE_INTERVAL_MINUTES): _number(
                     UPDATE_INTERVAL_MIN, UPDATE_INTERVAL_MAX, 1, "min"
                 ),
+                vol.Optional(
+                    CONF_ALLOW_UNTRUSTED, default=DEFAULT_ALLOW_UNTRUSTED
+                ): BooleanSelector(),
             }
         )
         return self.async_show_form(

@@ -145,6 +145,8 @@ class FakeModel(ThermalModel):
     fits: int = 0
     due: bool = False
     reachable: bool = True
+    trusted: bool | None = None
+    trust_reasons: tuple[str, ...] = ()
     preheat_calls: list[dict[str, Any]] = field(default_factory=list)
 
     def load_history(self, samples: Iterable[Sample], replace: bool = False) -> None:
@@ -193,6 +195,8 @@ class FakeModel(ThermalModel):
                 "iterations": 1,
                 "outdoor_source": "forecast" if forecast else "current",
             },
+            trusted=self.trusted,
+            trust_reasons=self.trust_reasons,
         )
 
     def coast(

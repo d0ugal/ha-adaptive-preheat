@@ -65,14 +65,16 @@
           "target_temperature": "Consigne fixe",
           "half_life_days": "Demi-vie de l'historique",
           "history_days": "Historique pour l'apprentissage",
-          "update_interval_minutes": "Intervalle de mise à jour"
+          "update_interval_minutes": "Intervalle de mise à jour",
+          "allow_untrusted": "Publier les ajustements peu fiables"
         },
         "data_description": {
           "target_mode": "Utiliser une consigne fixe ou suivre la consigne du thermostat.",
           "target_temperature": "Consigne utilisée en mode fixe (également la valeur de repli si le thermostat n'a pas de consigne).",
           "half_life_days": "Les données plus anciennes pèsent moitié moins après ce nombre de jours (s'adapte aux saisons).",
           "history_days": "Jours d'historique du recorder chargés au premier démarrage et par l'action de réentraînement.",
-          "update_interval_minutes": "Fréquence de recalcul de l'estimation, en minutes."
+          "update_interval_minutes": "Fréquence de recalcul de l'estimation, en minutes.",
+          "allow_untrusted": "Publier les minutes de préchauffage même lorsque l'ajustement semble peu fiable (paramètre à sa limite, trop peu de chauffe, aucun gain sur la persistance). Désactivé par défaut : l'estimation est alors inconnue avec la raison untrusted_fit."
         }
       }
     }
