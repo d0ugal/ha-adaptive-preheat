@@ -18,13 +18,17 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     ATTR_CONFIG_ENTRY_ID,
+    ATTR_PATH,
+    ATTR_REPLACE,
     DOMAIN,
     SERVICE_EXPORT_DIAGNOSTICS,
+    SERVICE_IMPORT_HISTORY,
     SERVICE_RESET,
     SERVICE_RETRAIN,
 )
 from .coordinator import RTMConfigEntry, RTMCoordinator
 from .diagnostics import async_get_config_entry_diagnostics
+from .rtm_core.history_import import HistoryImportError
 from .storage import RTMStorage
 
 PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
@@ -35,6 +39,13 @@ TARGET_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
         vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    }
+)
+
+IMPORT_SCHEMA = TARGET_SCHEMA.extend(
+    {
+        vol.Required(ATTR_PATH): cv.string,
+        vol.Optional(ATTR_REPLACE, default=False): cv.boolean,
     }
 )
 
@@ -91,6 +102,29 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:  # noqa:
         for entry in _target_entries(hass, call):
             await entry.runtime_data.async_reset()
 
+    async def _import_history(call: ServiceCall) -> ServiceResponse:
+        entries = _target_entries(hass, call)
+        if len(entries) != 1:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="import_needs_one_zone"
+            )
+        path = hass.config.path(call.data[ATTR_PATH])
+        if not hass.config.is_allowed_path(path):
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="path_not_allowed",
+                translation_placeholders={"path": path},
+            )
+        coordinator: RTMCoordinator = entries[0].runtime_data
+        try:
+            return await coordinator.async_import_history(path, call.data[ATTR_REPLACE])
+        except HistoryImportError as err:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="import_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err
+
     async def _export(call: ServiceCall) -> ServiceResponse:
         zones: dict[str, Any] = {}
         for entry in _target_entries(hass, call):
@@ -120,6 +154,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:  # noqa:
         SERVICE_EXPORT_DIAGNOSTICS,
         _export,
         schema=TARGET_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_IMPORT_HISTORY,
+        _import_history,
+        schema=IMPORT_SCHEMA,
         supports_response=SupportsResponse.OPTIONAL,
     )
     return True

@@ -163,6 +163,28 @@
           "description": "Voce di configurazione della zona. Lascia vuoto per tutte le zone."
         }
       }
+    },
+    "import_history": {
+      "name": "Importa cronologia",
+      "description": "Carica in una zona un file JSON-lines (una riga per intervallo con ts, indoor_c, outdoor_c, effort) e riallena il modello. Le righe più vecchie dei giorni di cronologia vengono scartate.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Zona",
+          "description": "Voce di configurazione della zona. Facoltativa se esiste una sola zona."
+        },
+        "entity_id": {
+          "name": "Entità",
+          "description": "Una qualsiasi entità della zona. Indica una zona o una entità (serve se esistono più zone)."
+        },
+        "path": {
+          "name": "Percorso",
+          "description": "File JSON-lines in una cartella consentita. Un percorso relativo parte dalla cartella di configurazione."
+        },
+        "replace": {
+          "name": "Sostituisci",
+          "description": "Elimina prima i dati appresi invece di unirli (in caso di unione prevalgono le righe esistenti)."
+        }
+      }
     }
   },
   "exceptions": {
@@ -174,6 +196,15 @@
     },
     "update_failed": {
       "message": "Aggiornamento della zona {zone} non riuscito: {error}"
+    },
+    "import_needs_one_zone": {
+      "message": "L'importazione richiede una sola zona: selezionala."
+    },
+    "path_not_allowed": {
+      "message": "{path} non è in una cartella consentita (vedi allowlist_external_dirs)."
+    },
+    "import_failed": {
+      "message": "Importazione non riuscita: {error}"
     }
   }
 }

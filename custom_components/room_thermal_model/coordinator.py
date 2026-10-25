@@ -18,6 +18,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -84,6 +85,7 @@ from .rtm_core.base import (
     ThermalModel,
     ThermalParameters,
 )
+from .rtm_core.history_import import HistoryImportError, ParsedHistory, parse_history
 from .storage import STORAGE_SCHEMA, RTMStorage, StoredData
 
 _LOGGER = logging.getLogger(__name__)
@@ -158,6 +160,15 @@ def parse_arrival(state: State | None, now: datetime) -> datetime | None:
 
 def _parse_dt(value: Any) -> datetime | None:
     return dt_util.parse_datetime(value) if isinstance(value, str) and value else None
+
+
+def _read_history_file(path: str) -> ParsedHistory:
+    """Read and parse a history file (blocking: run in the executor)."""
+    try:
+        with Path(path).open(encoding="utf-8") as handle:
+            return parse_history(handle)
+    except (OSError, UnicodeDecodeError) as err:
+        raise HistoryImportError(f"cannot read {path}: {err}") from err
 
 
 class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
@@ -609,6 +620,49 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
         if not self._unloading:
             await self.async_request_refresh()
         return len(samples)
+
+    async def async_import_history(self, path: str, replace: bool = False) -> dict[str, Any]:
+        """Load a JSON-lines history file (see ``rtm_core.history_import``) into the model.
+
+        Merges by default (existing rows win over imported ones, like the recorder
+        bootstrap); ``replace`` discards the learnt data first. The file is parsed in the
+        executor without the model lock; the model work follows the usual rules. Raises
+        ``HistoryImportError`` for an unreadable or invalid file.
+        """
+        parsed: ParsedHistory = await self.hass.async_add_executor_job(_read_history_file, path)
+        samples = parsed.samples
+        async with self._retrain_lock:
+            try:
+                await self._async_model_job(self.model.load_history, samples, replace)
+            finally:
+                self.bootstrapping = False
+            self._dirty = True
+            await self._async_flush_samples()
+            await self._async_fit_if_due(dt_util.utcnow(), force=True)
+            self.bootstrapped = True
+            await self._async_snapshot(force=True)
+        # The model keeps ``history_days`` back from its newest sample (live samples count):
+        # older rows are dropped, which the caller needs to know (raise the option).
+        keep_from = max(samples[-1].ts, dt_util.utcnow()) - timedelta(days=self.history_days)
+        dropped = sum(1 for s in samples if s.ts < keep_from)
+        if dropped:
+            _LOGGER.warning(
+                "Import into %s: %d of %d rows are older than history_days (%g) and were dropped",
+                self.zone_name,
+                dropped,
+                len(samples),
+                self.history_days,
+            )
+        if not self._unloading:
+            await self.async_request_refresh()
+        return {
+            "samples": len(samples),
+            "dropped_older_than_history_days": dropped,
+            "first": samples[0].ts.isoformat(),
+            "last": samples[-1].ts.isoformat(),
+            "reordered": parsed.reordered,
+            "duplicates": parsed.duplicates,
+        }
 
     async def async_reset(self) -> None:
         """Forget everything learnt (learning restarts from live samples)."""

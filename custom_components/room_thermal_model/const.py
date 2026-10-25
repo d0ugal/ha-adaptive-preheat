@@ -35,6 +35,7 @@ DEFAULT_UPDATE_INTERVAL_MINUTES: Final = 5
 SERVICE_RETRAIN: Final = "retrain"
 SERVICE_RESET: Final = "reset"
 SERVICE_EXPORT_DIAGNOSTICS: Final = "export_diagnostics"
+SERVICE_IMPORT_HISTORY: Final = "import_history"
 
 # Storage
 STORAGE_VERSION: Final = 1
@@ -59,7 +60,7 @@ TARGET_TEMPERATURE_STEP: Final = 0.5
 HALF_LIFE_DAYS_MIN: Final = 3
 HALF_LIFE_DAYS_MAX: Final = 120
 HISTORY_DAYS_MIN: Final = 7
-HISTORY_DAYS_MAX: Final = 90
+HISTORY_DAYS_MAX: Final = 400  # a year of imported history plus margin
 UPDATE_INTERVAL_MIN: Final = 1
 UPDATE_INTERVAL_MAX: Final = 30
 
@@ -92,3 +93,5 @@ STATUS_AT_TARGET: Final = "at_target"
 
 # Service fields
 ATTR_CONFIG_ENTRY_ID: Final = "config_entry_id"
+ATTR_PATH: Final = "path"
+ATTR_REPLACE: Final = "replace"

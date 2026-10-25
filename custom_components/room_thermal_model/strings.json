@@ -163,6 +163,28 @@
           "description": "Config entry of the zone. Leave empty for all zones."
         }
       }
+    },
+    "import_history": {
+      "name": "Import history",
+      "description": "Load a JSON-lines history file (one row per time step with ts, indoor_c, outdoor_c, effort) into one zone and refit. Rows older than the history days option are dropped.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Zone",
+          "description": "Config entry of the zone. Optional when only one zone exists."
+        },
+        "entity_id": {
+          "name": "Entities",
+          "description": "Any entity of the zone. Give either a zone or one entity (a zone is needed when several exist)."
+        },
+        "path": {
+          "name": "Path",
+          "description": "JSON-lines file inside an allowed folder. A relative path is resolved against the configuration folder."
+        },
+        "replace": {
+          "name": "Replace",
+          "description": "Discard the learnt data first instead of merging (existing rows win when merging)."
+        }
+      }
     }
   },
   "exceptions": {
@@ -174,6 +196,15 @@
     },
     "update_failed": {
       "message": "Update of zone {zone} failed: {error}"
+    },
+    "import_needs_one_zone": {
+      "message": "An import needs exactly one zone: select it."
+    },
+    "path_not_allowed": {
+      "message": "{path} is not in an allowed folder (see allowlist_external_dirs)."
+    },
+    "import_failed": {
+      "message": "Import failed: {error}"
     }
   }
 }

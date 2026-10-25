@@ -34,3 +34,25 @@ export_diagnostics:
       selector:
         config_entry:
           integration: room_thermal_model
+import_history:
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: room_thermal_model
+    entity_id:
+      required: false
+      selector:
+        entity:
+          multiple: true
+    path:
+      required: true
+      example: /config/history/living_room.jsonl
+      selector:
+        text:
+    replace:
+      required: false
+      default: false
+      selector:
+        boolean:
