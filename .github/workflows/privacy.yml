@@ -1,0 +1,31 @@
+name: Privacy
+
+# This repository is public. Fail when a change adds private network addresses, home
+# directory paths, personal commit emails, credentials or other personal information.
+# Findings name the file and kind only; they never echo the matched text into the public log.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: privacy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  privacy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan the commits in this change
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: python3 scripts/check_privacy.py --base "$BASE_SHA" --head HEAD
