@@ -92,6 +92,8 @@ async def test_scores_survive_a_reload(
     await _tick(hass, coordinator, freezer, 10)
     _room(hass, 20.5)
     await _tick(hass, coordinator, freezer, 10)
+    before = dict(hass.states.get(RUN_MAE).attributes["last_run"])
+    assert before["outcome"] == "reached"
     assert hass.states.get(RUN_MAE).attributes["runs"] == 1
     stored = coordinator._store_data()["scoring"]
     assert len(stored["results"]) == 1
@@ -101,7 +103,8 @@ async def test_scores_survive_a_reload(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
     assert hass.states.get(RUN_MAE).attributes["runs"] == 1
-    assert float(hass.states.get(LAST_ERROR).state) == 10.0
+    assert hass.states.get(RUN_MAE).attributes["last_run"] == before
+    assert float(hass.states.get(LAST_ERROR).state) == before["error_minutes"]
 
 
 async def test_reset_clears_the_scores(
