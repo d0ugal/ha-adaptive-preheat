@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/d0ugal/ha-room-thermal-model/compare/v0.2.0...v0.2.1) (2026-10-25)
+
+
+### Documentation
+
+* add a development guide, fork note and fork install URL ([22f1e91](https://github.com/d0ugal/ha-room-thermal-model/commit/22f1e91e5985534b413e8be248b18e2c72b7d496))
+
 ## [0.2.0](https://github.com/d0ugal/ha-room-thermal-model/compare/v0.1.1...v0.2.0) (2026-10-25)
 
 
