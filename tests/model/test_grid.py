@@ -109,3 +109,46 @@ def test_old_live_samples_are_ignored():
     n = len(m._grid)
     m.add_sample(Sample(at(-600), 30.0, 5.0, 1.0))
     assert len(m._grid) == n
+
+
+def test_rle_roundtrip_and_malformed():
+    from rtm_core.grid import rle_decode, rle_encode
+
+    values = [None, None, 5, 5, 5, 7, None, 0, 0]
+    assert rle_encode(values) == [None, 2, 5, 3, 7, 1, None, 1, 0, 2]
+    assert rle_decode(rle_encode(values)) == values
+    assert rle_encode([]) == []
+    for bad in ([1], [1, -1], [1, "x"]):
+        try:
+            rle_decode(bad)  # type: ignore[arg-type]
+        except ValueError:
+            continue
+        raise AssertionError(bad)
+
+
+def test_grid_roundtrip_is_compact_and_reads_the_plain_form():
+    n = 2000
+    g = Grid(
+        5,
+        1000.0,
+        [20.0 + (i % 7) * 0.01 for i in range(n)],
+        [5.0] * n,
+        [None if i < 10 else 0.0 for i in range(n)],
+        [i == 3 for i in range(n)],
+    )
+    d = g.to_dict()
+    back = Grid.from_dict(json.loads(json.dumps(d)))
+    assert back.indoor == [round(v, 2) for v in g.indoor]
+    assert back.effort == g.effort
+    assert back.excluded == g.excluded
+    assert len(json.dumps(d["outdoor_rle"])) < 30
+    plain = {
+        "step_minutes": 5,
+        "start_ts": 0.0,
+        "indoor_c100": [2000, None],
+        "outdoor_c100": [500, 500],
+        "effort_e3": [None, 1000],
+    }
+    old = Grid.from_dict(plain)
+    assert old.indoor == [20.0, None]
+    assert old.effort == [None, 1.0]
