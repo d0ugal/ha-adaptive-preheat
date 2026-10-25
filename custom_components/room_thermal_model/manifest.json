@@ -15,5 +15,5 @@
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/giogandola98/ha-room-thermal-model/issues",
   "requirements": [],
-  "version": "0.2.0"
+  "version": "0.2.1"
 }
