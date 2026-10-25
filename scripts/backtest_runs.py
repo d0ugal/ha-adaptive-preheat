@@ -33,6 +33,7 @@ runs before it, exactly as in the integration.
 from __future__ import annotations
 
 import argparse
+import bisect
 import json
 import sys
 from collections.abc import Callable, Iterable, Sequence
@@ -284,8 +285,6 @@ class RollingModel:
         return self._model
 
     def _fit(self, now: datetime) -> RCThermalModel | None:
-        import bisect
-
         lo = bisect.bisect_left(self._times, now - self._history)
         hi = bisect.bisect_left(self._times, now)  # strictly before
         window = self._rows[lo:hi]
@@ -351,13 +350,15 @@ def format_table(reports: Sequence[RoomReport]) -> str:
         f"{'cal MAE':>9}{'cal bias':>9}{'active':>7}{'MAE*':>7}{'cal MAE*':>9}{'factor':>8}"
     )
     lines = [head, "-" * len(head)]
-    for r in reports:
-        lines.append(
+    lines.extend(
+        (
             f"{r.room:<16}{r.episodes:>9}{r.clean:>6}{_fmt(r.mae, '.1f'):>7}{_fmt(r.bias):>7}"
             f"{_fmt(r.cal_mae, '.1f'):>9}{_fmt(r.cal_bias):>9}{r.active_runs:>7}"
             f"{_fmt(r.active_mae, '.1f'):>7}{_fmt(r.active_cal_mae, '.1f'):>9}"
             f"{r.final_factor:>8.2f}"
         )
+        for r in reports
+    )
     lines.append(
         f"* = only runs where the factor was active (>= {MIN_RUNS} earlier clean runs); "
         "errors in minutes, predicted minus actual"
