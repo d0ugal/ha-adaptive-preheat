@@ -21,6 +21,7 @@ from custom_components.room_thermal_model.const import (
     CONF_TARGET_TEMPERATURE,
     CONF_UPDATE_INTERVAL_MINUTES,
     CONF_WEATHER,
+    CONF_ZONE_GROUP,
     CONF_ZONE_NAME,
     DOMAIN,
 )
@@ -161,6 +162,47 @@ async def test_options_flow(hass: HomeAssistant) -> None:
     assert coordinator.allow_untrusted is True
     assert coordinator.model_config.half_life_days == 14.0
     assert coordinator.update_interval.total_seconds() == 600
+
+
+_OPTIONS = {
+    CONF_TARGET_MODE: "fixed",
+    CONF_TARGET_TEMPERATURE: 20.5,
+    CONF_HALF_LIFE_DAYS: 21,
+    CONF_HISTORY_DAYS: 30,
+    CONF_UPDATE_INTERVAL_MINUTES: 5,
+}
+
+
+async def test_options_flow_zone_group(hass: HomeAssistant) -> None:
+    """The group is stored stripped and case-folded, and removed when emptied."""
+    set_inputs(hass)
+    entry = await setup_entry(hass, make_entry(hass))
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**_OPTIONS, CONF_ZONE_GROUP: "  Upstairs "}
+    )
+    await hass.async_block_till_done()
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.options[CONF_ZONE_GROUP] == "upstairs"
+    assert entry.runtime_data.zone_group == "upstairs"
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**_OPTIONS, CONF_ZONE_GROUP: "   "}
+    )
+    await hass.async_block_till_done()
+    assert CONF_ZONE_GROUP not in entry.options
+    assert entry.runtime_data.zone_group is None
+
+
+async def test_options_flow_zone_group_too_long(hass: HomeAssistant) -> None:
+    set_inputs(hass)
+    entry = await setup_entry(hass, make_entry(hass))
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**_OPTIONS, CONF_ZONE_GROUP: "x" * 65}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {CONF_ZONE_GROUP: "group_too_long"}
 
 
 async def test_reconfigure(hass: HomeAssistant) -> None:
