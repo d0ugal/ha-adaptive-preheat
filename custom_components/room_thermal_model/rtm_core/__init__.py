@@ -12,6 +12,7 @@ from .base import (
     ThermalParameters,
 )
 from .model import RCThermalModel
+from .scoring import RunResult, RunScorer, ScoringSummary
 
 
 def create_model(config: ModelConfig | None = None) -> ThermalModel:
@@ -25,7 +26,10 @@ __all__ = [
     "PreheatEstimate",
     "QualityReport",
     "RCThermalModel",
+    "RunResult",
+    "RunScorer",
     "Sample",
+    "ScoringSummary",
     "ThermalModel",
     "ThermalParameters",
     "create_model",
