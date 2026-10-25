@@ -29,7 +29,7 @@ Run ruff with `--exclude .claude` if you call it outside `make`: agent worktrees
 
 Two layers, and the boundary matters:
 
-- `rtm_core/` is pure standard-library Python with no Home Assistant imports. It holds the model (`model.py`, `fit.py`, `physics.py`, `deadtime.py`, `cooling.py`, `forecast.py`, `quality.py`), a synthetic-room generator (`synthetic.py`) and run scoring (`scoring.py`). Everything goes through the `ThermalModel` ABC in `base.py`; `create_model()` in `__init__.py` is the factory. Pyright is **strict** here and basic elsewhere. New learning logic goes in the core so it stays testable without Home Assistant.
+- `rtm_core/` is pure standard-library Python with no Home Assistant imports. It holds the model (`model.py`, `fit.py`, `physics.py`, `deadtime.py`, `cooling.py`, `forecast.py`, `quality.py`, `trust.py`), a synthetic-room generator (`synthetic.py`) and run scoring (`scoring.py`). Everything goes through the `ThermalModel` ABC in `base.py`; `create_model()` in `__init__.py` is the factory. Pyright is **strict** here and basic elsewhere. New learning logic goes in the core so it stays testable without Home Assistant.
 - The Home Assistant glue wraps it: one config entry per zone, one `RTMCoordinator` per entry (`coordinator.py`, the largest file), entities in `sensor.py` and `binary_sensor.py`, `inputs.py` turns entity states into `Sample`s, `history.py` bootstraps from the recorder, `storage.py` persists to the HA Store.
 
 Coordinator rules that are easy to break (documented at the top of `coordinator.py`):
@@ -37,6 +37,8 @@ Coordinator rules that are easy to break (documented at the top of `coordinator.
 - Every model call holds `self._lock`; CPU work (`fit`, `load_history`, `to_dict`, `from_dict`, `reset`) runs in the executor under it; cheap calls run in the loop; the lock is never held around recorder reads or service calls.
 - Live samples are queued by state listeners and flushed into the model by one task. Each poll also feeds a sample, and a 5 minute grid timer covers long update intervals.
 - The model snapshot (`model.to_dict()`) and the run scorer are saved together in one Store document (`_store_data`). The scorer is separate from the model: it is fed in `_async_update_data` from the estimate and the effort, and `reset` clears both.
+
+Fit trust (`rtm_core/trust.py`): `RCThermalModel.trust(target)` assesses the current fit and `preheat` attaches `trusted` / `trust_reasons` to the estimate. The coordinator withholds the minutes (status `untrusted_fit`, no lead, nothing scored) unless the `allow_untrusted` option is on. Only `False` withholds: `None` (a model double without a verdict) is treated as trusted. Thresholds live as constants in `trust.py` and are documented in its docstring and the README.
 
 Run scoring (`rtm_core/scoring.py`): a run opens on the first estimate made while the zone is heating, closes when the room is within 0.2 K of the target, and is scored as `predicted - actual`. Only runs heating for at least 80% of the time feed the means, because a shared boiler can stop a zone mid-run.
 
