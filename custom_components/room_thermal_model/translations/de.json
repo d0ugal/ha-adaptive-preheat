@@ -12,6 +12,8 @@
           "outdoor_temperature_sensor": "Außentemperatursensor",
           "weather_entity": "Wetter-Entität",
           "arrival_sensor": "Ankunftszeitsensor",
+          "schedule_entity": "Zeitplan",
+          "schedule_target_key": "Zieltemperatur-Schlüssel des Zeitplans",
           "target_mode": "Zieltemperatur",
           "target_temperature": "Festes Ziel"
         },
@@ -23,6 +25,8 @@
           "outdoor_temperature_sensor": "Optional. Aktuelle Außentemperatur (der Verlauf wird zum Lernen verwendet).",
           "weather_entity": "Optional. Vorhersage für das Vorheizfenster (stündlich, sonst zweimal täglich, sonst täglich) und Außentemperatur, wenn kein Außensensor gesetzt ist.",
           "arrival_sensor": "Optional. Zeitstempelsensor mit der erwarteten Ankunft (z. B. sensor.house_next_return_eta von Home Return Predictor): aktiviert die Entitäten Vorheizbeginn und Jetzt vorheizen.",
+          "schedule_entity": "Optional. Ein Zeitplan-Helfer (z. B. schedule.wohnzimmer_heizung). Der Beginn seines nächsten Blocks, der die Zieltemperatur anhebt, gilt als Ankunft, sodass Vorheizbeginn und Jetzt vorheizen ohne Ankunftssensor funktionieren. Sind beide gesetzt, gilt der frühere.",
+          "schedule_target_key": "Name des Datenfelds jedes Zeitplanblocks mit der Zieltemperatur (Standard: target_temperature). Wird nur mit einem Zeitplan verwendet.",
           "target_mode": "Ein festes Ziel verwenden oder der Solltemperatur des Thermostats folgen.",
           "target_temperature": "Ziel im festen Modus (auch Rückfallwert, wenn das Thermostat keine Solltemperatur hat)."
         }
@@ -36,7 +40,9 @@
           "heating_effort_sensor": "Heizleistungssensor",
           "outdoor_temperature_sensor": "Außentemperatursensor",
           "weather_entity": "Wetter-Entität",
-          "arrival_sensor": "Ankunftszeitsensor"
+          "arrival_sensor": "Ankunftszeitsensor",
+          "schedule_entity": "Zeitplan",
+          "schedule_target_key": "Zieltemperatur-Schlüssel des Zeitplans"
         },
         "data_description": {
           "zone_name": "Name der Zone (Raum oder Heizzone); wird auch für die Entitäts-IDs verwendet.",
@@ -44,7 +50,9 @@
           "heating_effort_sensor": "Optional. Heizbedarf in % (0-100), z. B. Ventilöffnung. Ohne ihn wird der Bedarf aus hvac_action abgeleitet (heating = 100 %, idle/off = 0 %).",
           "outdoor_temperature_sensor": "Optional. Aktuelle Außentemperatur (der Verlauf wird zum Lernen verwendet).",
           "weather_entity": "Optional. Vorhersage für das Vorheizfenster (stündlich, sonst zweimal täglich, sonst täglich) und Außentemperatur, wenn kein Außensensor gesetzt ist.",
-          "arrival_sensor": "Optional. Zeitstempelsensor mit der erwarteten Ankunft (z. B. sensor.house_next_return_eta von Home Return Predictor): aktiviert die Entitäten Vorheizbeginn und Jetzt vorheizen."
+          "arrival_sensor": "Optional. Zeitstempelsensor mit der erwarteten Ankunft (z. B. sensor.house_next_return_eta von Home Return Predictor): aktiviert die Entitäten Vorheizbeginn und Jetzt vorheizen.",
+          "schedule_entity": "Optional. Ein Zeitplan-Helfer (z. B. schedule.wohnzimmer_heizung). Der Beginn seines nächsten Blocks, der die Zieltemperatur anhebt, gilt als Ankunft, sodass Vorheizbeginn und Jetzt vorheizen ohne Ankunftssensor funktionieren. Sind beide gesetzt, gilt der frühere.",
+          "schedule_target_key": "Name des Datenfelds jedes Zeitplanblocks mit der Zieltemperatur (Standard: target_temperature). Wird nur mit einem Zeitplan verwendet."
         }
       }
     },

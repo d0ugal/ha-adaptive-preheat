@@ -29,6 +29,8 @@ from .const import (
     CONF_HISTORY_DAYS,
     CONF_OUTDOOR_SENSOR,
     CONF_ROOM_SENSOR,
+    CONF_SCHEDULE_ENTITY,
+    CONF_SCHEDULE_TARGET_KEY,
     CONF_TARGET_MODE,
     CONF_TARGET_TEMPERATURE,
     CONF_UPDATE_INTERVAL_MINUTES,
@@ -37,6 +39,7 @@ from .const import (
     DEFAULT_ALLOW_UNTRUSTED,
     DEFAULT_HALF_LIFE_DAYS,
     DEFAULT_HISTORY_DAYS,
+    DEFAULT_SCHEDULE_TARGET_KEY,
     DEFAULT_TARGET_MODE,
     DEFAULT_TARGET_TEMPERATURE,
     DEFAULT_UPDATE_INTERVAL_MINUTES,
@@ -60,6 +63,8 @@ OPTIONAL_INPUTS = (
     CONF_OUTDOOR_SENSOR,
     CONF_WEATHER,
     CONF_ARRIVAL_SENSOR,
+    CONF_SCHEDULE_ENTITY,
+    CONF_SCHEDULE_TARGET_KEY,
 )
 
 
@@ -104,6 +109,10 @@ def _input_fields(include_climate: bool) -> dict[Any, Any]:
             vol.Optional(CONF_ARRIVAL_SENSOR): EntitySelector(
                 EntitySelectorConfig(domain="sensor", device_class="timestamp")
             ),
+            vol.Optional(CONF_SCHEDULE_ENTITY): EntitySelector(
+                EntitySelectorConfig(domain="schedule")
+            ),
+            vol.Optional(CONF_SCHEDULE_TARGET_KEY): TextSelector(),
         }
     )
     return fields
@@ -111,7 +120,19 @@ def _input_fields(include_climate: bool) -> dict[Any, Any]:
 
 def _clean(user_input: dict[str, Any], keys: tuple[str, ...]) -> dict[str, Any]:
     """Keep non-empty values of ``keys``."""
-    return {k: user_input[k] for k in keys if user_input.get(k)}
+    cleaned: dict[str, Any] = {}
+    for key in keys:
+        value = user_input.get(key)
+        if isinstance(value, str):
+            value = value.strip()
+        if value:
+            cleaned[key] = value
+    # the key only matters with a schedule; the default is implied
+    if CONF_SCHEDULE_ENTITY not in cleaned or (
+        cleaned.get(CONF_SCHEDULE_TARGET_KEY) == DEFAULT_SCHEDULE_TARGET_KEY
+    ):
+        cleaned.pop(CONF_SCHEDULE_TARGET_KEY, None)
+    return cleaned
 
 
 class RoomThermalModelConfigFlow(ConfigFlow, domain=DOMAIN):

@@ -12,6 +12,8 @@
           "outdoor_temperature_sensor": "Outdoor temperature sensor",
           "weather_entity": "Weather entity",
           "arrival_sensor": "Arrival time sensor",
+          "schedule_entity": "Schedule",
+          "schedule_target_key": "Schedule target key",
           "target_mode": "Target temperature",
           "target_temperature": "Fixed target"
         },
@@ -23,6 +25,8 @@
           "outdoor_temperature_sensor": "Optional. Current outdoor temperature (history is used for learning).",
           "weather_entity": "Optional. Forecast for the preheat window (hourly, else twice daily, else daily) and outdoor temperature when no outdoor sensor is set.",
           "arrival_sensor": "Optional. Timestamp sensor with the expected arrival (e.g. sensor.house_next_return_eta from Home Return Predictor): enables the preheat start and preheat now entities.",
+          "schedule_entity": "Optional. A schedule helper (e.g. schedule.living_room_heating). The start of its next block that raises the target is used as the arrival, so preheat start and preheat now work without an arrival sensor. The sooner of the two wins when both are set.",
+          "schedule_target_key": "Name of the data field of each schedule block that holds the target temperature (default: target_temperature). Only used with a schedule.",
           "target_mode": "Use a fixed target or follow the thermostat's set temperature.",
           "target_temperature": "Target used in fixed mode (also the fallback when the thermostat has no set temperature)."
         }
@@ -36,7 +40,9 @@
           "heating_effort_sensor": "Heating effort sensor",
           "outdoor_temperature_sensor": "Outdoor temperature sensor",
           "weather_entity": "Weather entity",
-          "arrival_sensor": "Arrival time sensor"
+          "arrival_sensor": "Arrival time sensor",
+          "schedule_entity": "Schedule",
+          "schedule_target_key": "Schedule target key"
         },
         "data_description": {
           "zone_name": "Name of the zone (room or heating zone); also used for the entity IDs.",
@@ -44,7 +50,9 @@
           "heating_effort_sensor": "Optional. Heating demand in % (0-100), e.g. valve opening. Without it the effort comes from hvac_action (heating = 100 %, idle/off = 0 %).",
           "outdoor_temperature_sensor": "Optional. Current outdoor temperature (history is used for learning).",
           "weather_entity": "Optional. Forecast for the preheat window (hourly, else twice daily, else daily) and outdoor temperature when no outdoor sensor is set.",
-          "arrival_sensor": "Optional. Timestamp sensor with the expected arrival (e.g. sensor.house_next_return_eta from Home Return Predictor): enables the preheat start and preheat now entities."
+          "arrival_sensor": "Optional. Timestamp sensor with the expected arrival (e.g. sensor.house_next_return_eta from Home Return Predictor): enables the preheat start and preheat now entities.",
+          "schedule_entity": "Optional. A schedule helper (e.g. schedule.living_room_heating). The start of its next block that raises the target is used as the arrival, so preheat start and preheat now work without an arrival sensor. The sooner of the two wins when both are set.",
+          "schedule_target_key": "Name of the data field of each schedule block that holds the target temperature (default: target_temperature). Only used with a schedule."
         }
       }
     },
