@@ -54,7 +54,8 @@ EMAIL_DOMAINS_OK = (
 )
 IDENTITY_DOMAINS_OK = ("users.noreply.github.com",)
 IDENTITY_ADDRESSES_OK = ("noreply@github.com",)  # the committer GitHub records for web merges
-EXCLUDED_FILES = ("uv.lock",)
+# The lock file is generated; the scanner and its tests contain synthetic examples on purpose.
+EXCLUDED_FILES = ("uv.lock", "scripts/check_privacy.py", "tests/model/test_privacy_check.py")
 
 
 @dataclass(frozen=True)
