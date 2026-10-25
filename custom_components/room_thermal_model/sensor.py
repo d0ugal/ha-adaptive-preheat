@@ -18,14 +18,17 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from .const import (
     KEY_DEAD_TIME,
     KEY_HEATING_RATE,
+    KEY_LAST_RUN_ERROR,
     KEY_MAX_REACHABLE,
     KEY_MODEL_MATURITY,
     KEY_PREHEAT_MINUTES,
     KEY_PREHEAT_START,
+    KEY_RUN_MAE,
     KEY_TIME_CONSTANT,
 )
 from .coordinator import RTMConfigEntry, RTMCoordinator
 from .entity import RTMEntity
+from .rtm_core import RunResult
 
 PARALLEL_UPDATES = 0
 
@@ -50,6 +53,8 @@ async def async_setup_entry(
         TimeConstantSensor(coordinator),
         HeatingRateSensor(coordinator),
         DeadTimeSensor(coordinator),
+        LastRunErrorSensor(coordinator),
+        RunMaeSensor(coordinator),
     ]
     if coordinator.inputs.arrival_sensor:
         entities.append(PreheatStartSensor(coordinator))
@@ -237,3 +242,86 @@ class DeadTimeSensor(RTMParameterSensor):
         assert self.zone is not None
         assert self.zone.parameters is not None
         return self.zone.parameters.dead_time_minutes
+
+
+def _run_attributes(run: RunResult) -> dict[str, Any]:
+    return {
+        "started_at": run.started_at.isoformat(),
+        "finished_at": run.finished_at.isoformat(),
+        "outcome": run.outcome,
+        "start_c": _round(run.start_c),
+        "target_c": _round(run.target_c),
+        "peak_c": _round(run.peak_c),
+        "predicted_minutes": _round(run.predicted_minutes, 1),
+        "actual_minutes": _round(run.actual_minutes, 1),
+        "error_minutes": _round(run.error_minutes, 1),
+        "heating_fraction": _round(run.heating_fraction),
+        "clean": run.clean,
+    }
+
+
+class RTMScoringSensor(RTMSensor):
+    """Diagnostic sensor reporting how the live preheat predictions turned out."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfTime.MINUTES
+    _attr_suggested_display_precision = 1
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Counts, the latest runs and the run in progress."""
+        zone = self.zone
+        scoring = zone.scoring if zone else None
+        if scoring is None:
+            return {}
+        run = scoring.open_run
+        return {
+            "runs": scoring.runs,
+            "reached": scoring.reached,
+            "clean_runs": scoring.clean,
+            "mae_minutes": _round(scoring.mae_minutes, 1),
+            "bias_minutes": _round(scoring.bias_minutes, 1),
+            "open_run": (
+                {
+                    "started_at": run.started_at.isoformat(),
+                    "start_c": _round(run.start_c),
+                    "target_c": _round(run.target_c),
+                    "predicted_minutes": _round(run.predicted_minutes, 1),
+                }
+                if run
+                else None
+            ),
+            "last_run": _run_attributes(scoring.last) if scoring.last else None,
+        }
+
+
+class LastRunErrorSensor(RTMScoringSensor):
+    """Signed error of the newest scored run: predicted minus actual (positive = too slow)."""
+
+    _key_name = KEY_LAST_RUN_ERROR
+
+    @property
+    def native_value(self) -> float | None:
+        """Error of the newest run that reached its target (unknown before the first)."""
+        zone = self.zone
+        scoring = zone.scoring if zone else None
+        if scoring is None:
+            return None
+        for run in reversed(self.coordinator.scorer.results):
+            if run.error_minutes is not None:
+                return _round(run.error_minutes, 1)
+        return None
+
+
+class RunMaeSensor(RTMScoringSensor):
+    """Mean absolute error over the clean runs kept (heating for most of the run)."""
+
+    _key_name = KEY_RUN_MAE
+
+    @property
+    def native_value(self) -> float | None:
+        """Minutes (unknown before the first clean run)."""
+        zone = self.zone
+        scoring = zone.scoring if zone else None
+        return _round(scoring.mae_minutes, 1) if scoring else None

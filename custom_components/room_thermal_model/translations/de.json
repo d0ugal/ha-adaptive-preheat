@@ -112,6 +112,12 @@
       },
       "dead_time": {
         "name": "Totzeit"
+      },
+      "last_run_error": {
+        "name": "Fehler letzter Lauf"
+      },
+      "run_mae": {
+        "name": "Laufabweichung (Mittel)"
       }
     }
   },

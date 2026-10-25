@@ -74,7 +74,7 @@ from .inputs import (
     build_sample,
     climate_target,
 )
-from .rtm_core import create_model
+from .rtm_core import RunScorer, ScoringSummary, create_model
 from .rtm_core.base import (
     ForecastPoint,
     ModelConfig,
@@ -114,6 +114,7 @@ class ZoneData:
     coast_c: float | None = None  # temperature at arrival without heating
     latched: bool = False  # preheat_now held on (hysteresis)
     last_fit: datetime | None = None
+    scoring: ScoringSummary | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -196,6 +197,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
         )
         self.storage = RTMStorage(hass, entry.entry_id)
         self.snapshot: dict[str, Any] | None = None
+        self.scorer = RunScorer()
         self.last_fit: datetime | None = None
         self.last_fit_summary: dict[str, Any] | None = None
         self.bootstrapped = False
@@ -254,6 +256,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
                 _LOGGER.warning("Discarding unreadable model of %s: %s", self.zone_name, err)
             else:
                 self.snapshot = model_data
+        self.scorer = RunScorer.from_dict(stored.get("scoring"))
         self.last_fit = _parse_dt(stored.get("last_fit"))
         self.bootstrapped = bool(stored.get("bootstrapped")) and self.snapshot is not None
         self._async_subscribe()
@@ -437,6 +440,11 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             status = STATUS_AT_TARGET
         else:
             status = STATUS_OK
+        predicted = estimate.minutes if estimate is not None and status == STATUS_OK else None
+        heating = current.effort > 0 if current.effort is not None else None
+        self.scorer.observe(now, indoor, target_c, predicted, heating)
+        if self.scorer.consume_dirty():
+            self._schedule_save(now)
         preheat_start = arrival - timedelta(minutes=lead) if arrival and lead is not None else None
         latched = (
             self.data is not None
@@ -463,6 +471,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             coast_c=coast_c,
             latched=latched,
             last_fit=self.last_fit,
+            scoring=self.scorer.summary(),
         )
         self._schedule_timers(data, now)
         await self._async_snapshot(force=fitted)
@@ -568,6 +577,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
             "last_fit": self.last_fit.isoformat() if self.last_fit else None,
             "bootstrapped": self.bootstrapped,
             "inputs": sorted(self.inputs.sample_entities),
+            "scoring": self.scorer.to_dict(),
         }
 
     # ------------------------------------------------------------------ actions
@@ -606,6 +616,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
         await self._async_model_job(self.model.reset)
         self.last_fit = None
         self.last_fit_summary = None
+        self.scorer.reset()
         self._dirty = True
         await self._async_snapshot(force=True)
         await self.async_refresh()

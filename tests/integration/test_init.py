@@ -44,6 +44,8 @@ BASE_SENSORS = (
     "time_constant",
     "heating_rate",
     "dead_time",
+    "last_run_error",
+    "run_mae",
 )
 
 
@@ -76,7 +78,7 @@ async def test_entity_ids_without_arrival(hass: HomeAssistant, fake_model: None)
         key = entity.entity_id.split(".", 1)[1].removeprefix(f"{SLUG}_")
         assert entity.unique_id == f"{entry.entry_id}_{key}"
         assert entity.translation_key == key
-    diag = {"time_constant", "heating_rate", "dead_time"}
+    diag = {"time_constant", "heating_rate", "dead_time", "last_run_error", "run_mae"}
     for entity in entities:
         is_diag = entity.unique_id.removeprefix(f"{entry.entry_id}_") in diag
         assert (entity.entity_category is not None) == is_diag

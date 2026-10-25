@@ -112,6 +112,12 @@
       },
       "dead_time": {
         "name": "Dead time"
+      },
+      "last_run_error": {
+        "name": "Last run error"
+      },
+      "run_mae": {
+        "name": "Run error (mean)"
       }
     }
   },

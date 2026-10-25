@@ -49,6 +49,8 @@ KEY_MODEL_MATURITY: Final = "model_maturity"
 KEY_TIME_CONSTANT: Final = "time_constant"
 KEY_HEATING_RATE: Final = "heating_rate"
 KEY_DEAD_TIME: Final = "dead_time"
+KEY_LAST_RUN_ERROR: Final = "last_run_error"
+KEY_RUN_MAE: Final = "run_mae"
 
 # Option ranges
 TARGET_TEMPERATURE_MIN: Final = 5.0

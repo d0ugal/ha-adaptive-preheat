@@ -112,6 +112,12 @@
       },
       "dead_time": {
         "name": "Temps mort"
+      },
+      "last_run_error": {
+        "name": "Erreur du dernier cycle"
+      },
+      "run_mae": {
+        "name": "Erreur des cycles (moyenne)"
       }
     }
   },
