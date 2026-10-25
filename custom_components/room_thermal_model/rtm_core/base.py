@@ -10,7 +10,10 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .shared_prior import GroupPrior
 
 
 @dataclass(frozen=True)
@@ -152,6 +155,14 @@ class ThermalModel(ABC):
     @abstractmethod
     def quality(self) -> QualityReport:
         """Return the quality / maturity report."""
+
+    def set_prior(self, prior: GroupPrior | None) -> None:  # noqa: B027 (optional hook)
+        """Use ``prior`` (borrowed from peers) for the next fits; None = defaults.
+
+        Optional: models without a prior ignore it. The value is immutable, so it can be
+        set from the event loop while a fit runs in an executor (the fit keeps the prior
+        it started with).
+        """
 
     @abstractmethod
     def reset(self) -> None:

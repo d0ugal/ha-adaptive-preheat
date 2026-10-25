@@ -32,6 +32,7 @@ from .quality import (
     experience_hours,
     maturity,
 )
+from .shared_prior import DEFAULT_PRIOR_INFO, GroupPrior
 from .trust import FitFacts, FitTrust, assess_fit
 
 STATE_VERSION = 1
@@ -56,6 +57,7 @@ class RCThermalModel(ThermalModel):
 
     def __init__(self, config: ModelConfig | None = None) -> None:
         self.config = config or ModelConfig()
+        self._group_prior: GroupPrior | None = None  # runtime hint, not persisted
         self.reset()
 
     # -- data ingestion -----------------------------------------------------------------
@@ -155,6 +157,9 @@ class RCThermalModel(ThermalModel):
             self._grid.trim_before(self._last_sample_ts - self._history_s)
 
     # -- fitting ------------------------------------------------------------------------
+    def set_prior(self, prior: GroupPrior | None) -> None:
+        self._group_prior = prior
+
     def fit_due(self, now: datetime) -> bool:
         if self._last_sample_ts is None or self._grid.end_ts is None:
             return False
@@ -175,11 +180,14 @@ class RCThermalModel(ThermalModel):
         # fit runs in an executor while samples keep arriving: work on a snapshot
         grid = self._grid.snapshot()
         self._data_end_at_fit = grid.end_ts
+        gp = self._group_prior  # immutable: the executor works on this one
+        prior = gp.as_prior() if gp is not None else None
+        prior_info = gp.as_dict() if gp is not None else dict(DEFAULT_PRIOR_INFO)
         ds = build_dataset(grid, cfg, now_ts)
         if len(ds) * ds.dt_h < MIN_FIT_HOURS:
             self._summary = {"status": "insufficient_data", "rows": len(ds)}
             return dict(self._summary)
-        res = fit_rc(ds, grid.effort, cfg)
+        res = fit_rc(ds, grid.effort, cfg, prior=prior)
         if res is None:
             self._summary = {"status": "insufficient_data", "rows": len(ds)}
             return dict(self._summary)
@@ -206,7 +214,13 @@ class RCThermalModel(ThermalModel):
             fallbacks.append("loss_rate_from_cooling")
         if fallbacks:
             res2 = fit_rc(
-                ds, grid.effort, cfg, d_candidates=[d_steps], fixed=fixed, scale=res.scale
+                ds,
+                grid.effort,
+                cfg,
+                prior=prior,
+                d_candidates=[d_steps],
+                fixed=fixed,
+                scale=res.scale,
             )
             if res2 is not None:
                 res2.criterion, res2.flatness = res.criterion, res.flatness
@@ -219,7 +233,13 @@ class RCThermalModel(ThermalModel):
             k_hold = ds.k[int((1.0 - HOLDOUT_FRACTION) * n)]
             train = ds.subset(k_hold)
             r_tr = fit_rc(
-                train, grid.effort, cfg, d_candidates=[res.d_steps], fixed=fixed, scale=res.scale
+                train,
+                grid.effort,
+                cfg,
+                prior=prior,
+                d_candidates=[res.d_steps],
+                fixed=fixed,
+                scale=res.scale,
             )
             if r_tr is not None:
                 p_tr = Params(r_tr.a, r_tr.b, r_tr.c, r_tr.d_steps, ds.use_outdoor)
@@ -260,6 +280,7 @@ class RCThermalModel(ThermalModel):
             **self._fit_dict(res),
             "time_constant_h": round(1.0 / res.b, 3),
             "fallbacks": fallbacks,
+            "prior": prior_info,
             "cross_check": cross,
             "quality": {k: _r(v) if isinstance(v, float) else v for k, v in self._quality.items()},
             "evaluation_windows": evaluation.windows if evaluation else 0,
