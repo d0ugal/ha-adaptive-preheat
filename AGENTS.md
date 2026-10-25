@@ -63,3 +63,5 @@ This repository is public. Never commit, push or write into a PR, issue or relea
 - Releases are cut by release-please, which bumps `pyproject.toml`, `manifest.json` and the changelog but cannot update `uv.lock`. The `refresh-lock` job in `release-please.yml` runs `uv lock` on the release PR branch; if `uv sync --locked` ever fails on `main` after a release, that job failed and the lock needs a manual `uv lock` PR.
 - Actions are pinned by SHA. The compatibility matrix maps `pytest-homeassistant-custom-component` versions to Home Assistant versions; the mapping and how to bump the minimum are in the header of `.github/workflows/compat.yml`.
 - A component change deploys only after a release and a full Home Assistant restart, not a reload.
+
+Self-calibration (`rtm_core/calibration.py`): a factor on the predicted minutes from the clean scored runs (median of actual/predicted, shrunk to 1.0, clamped 0.5 to 2.0, inactive below 5 runs). Scoring must always judge the RAW prediction (`predicted_minutes`); the published figure is only stored (`published_minutes`). `scripts/backtest_runs.py` replays history through the real scorer.

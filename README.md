@@ -72,7 +72,7 @@ Settings → Devices & services → Add integration → **Room Thermal Model**.
 | Schedule target key | no | data field of each schedule block holding the target (default `target_temperature`) |
 
 Options: target temperature (fixed, default 20.5 °C, or follow the climate's target),
-data half-life (21 days), history window (30 days), update interval (5 min), and
+data half-life (21 days), history window (30 days), update interval (5 min), self-calibration (on, see [below](#self-calibration)), and
 `allow_untrusted` (off; see [Fit trust](#fit-trust)).
 Without any outdoor source the model still works but cannot follow the weather, so
 expect larger errors.
@@ -376,3 +376,60 @@ longer than predicted closes it unscored. A run counts as *clean* when the zone 
 at least 80% of it: a shared boiler can stop heating a zone mid-run, which the model cannot
 know about, so those runs are kept but do not feed the means. Results survive restarts and are
 cleared by the `reset` service.
+
+## Self-calibration
+
+Run scoring also corrects the model. From the clean scored runs the integration keeps a
+multiplicative factor on the predicted minutes: the median of `actual / predicted`, shrunk
+towards 1.0 as if three extra runs had been exactly right, and clamped to 0.5 to 2.0. It stays
+at exactly 1.0 until five clean runs exist, so weak evidence changes nothing.
+
+- `preheat_minutes` publishes the calibrated figure. The whole figure is scaled, dead time
+  included, because the runs measure the total warm-up and cannot tell the parts apart.
+- Attributes: `calibration_factor`, `calibration_runs` and `uncalibrated_minutes`.
+- `preheat_start` (and so `preheat_now`) uses the same figure, so the start agrees with the
+  published minutes.
+- Scoring always judges the **uncalibrated** prediction, so the factor never feeds back into its
+  own evidence; the published figure is stored next to it in each run for reference.
+- The evidence is the stored scoring results, so it survives restarts and the `reset` service
+  clears it. Turn it off with the `self_calibrate` option (default on).
+
+The factor is a coarse correction: it cannot rescue a model that is wrong by an order of
+magnitude (it saturates at 0.5 or 2.0), and the real fix there is a better fit.
+
+### Back-test
+
+`scripts/backtest_runs.py` replays recorded history through the real `RunScorer` and the
+calibration, using only data before each run to fit the model (refit at most weekly):
+
+```bash
+uv run --managed-python --python 3.13 python scripts/backtest_runs.py history/room_a.jsonl history/room_b.jsonl
+```
+
+Input is JSON lines, one row per observation:
+`{"ts": "2026-01-05T06:00:00+00:00", "indoor_c": 17.9, "outdoor_c": 4.2, "effort": 0.8}`
+(`effort` 0 to 1, any value may be null). History has no thermostat targets, so runs are a
+proxy: a heating episode (effort at least 0.5, short pauses bridged) in which the room rose by
+at least 1 K, with the target taken as the highest temperature of the episode. That makes the
+numbers a relative baseline, not what a user would see. Errors are predicted minus actual.
+
+Baseline on about eleven months of history of six rooms of one house (30 day fit window, clean
+runs only). Calibration is applied chronologically, each run using only earlier runs:
+
+| Room | Clean runs | MAE | Bias | MAE calibrated | Bias calibrated |
+|---|---|---|---|---|---|
+| A | 28 | 381.0 | +379.7 | 188.6 | +185.5 |
+| B | 40 | 818.3 | +817.7 | 426.8 | +421.1 |
+| C | 31 | 936.2 | +933.9 | 483.3 | +478.9 |
+| D | 0 | - | - | - | - |
+| E | 6 | 34.6 | +34.6 | 33.0 | +33.0 |
+| F | 88 | 977.1 | +969.5 | 465.1 | +457.7 |
+
+(Room D had no usable episodes: its temperature sensor reports whole degrees and does not track
+the room.) These baselines are poor: the fitted heating rate is far too low in winter, so the
+model predicts many hours for warm-ups that took one to three. Calibration halves the error
+because the factor sits at its 0.5 floor, but the predictions stay unusable. For comparison, on
+a synthetic radiator room with a well-fitted model the same procedure takes the MAE from 10.0 to
+6.6 minutes. The calibration helps in every room that had runs, and never hurts when the
+evidence is weak, which is why it is on by default; the large errors need a better fit, not a
+bigger factor.

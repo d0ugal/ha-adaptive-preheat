@@ -10,6 +10,7 @@ make test        # pytest: pure model tests (no HA) and integration tests
 make lint        # ruff check and format check, run in the pinned ruff container
 make format      # ruff fix and format
 make simulate    # synthetic rooms: learning curve (scripts/simulate.py)
+python scripts/backtest_runs.py HISTORY.jsonl   # replay history through run scoring and calibration
 uvx pyright==1.1.408   # same pyright version as CI; rtm_core is held to strict
 ```
 
