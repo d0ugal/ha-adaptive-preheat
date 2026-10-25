@@ -28,6 +28,7 @@ CONF_HISTORY_DAYS: Final = "history_days"
 CONF_UPDATE_INTERVAL_MINUTES: Final = "update_interval_minutes"
 CONF_ALLOW_UNTRUSTED: Final = "allow_untrusted"
 CONF_ZONE_GROUP: Final = "zone_group"  # optional: rooms on one boiler zone share a prior
+CONF_SELF_CALIBRATE: Final = "self_calibrate"
 
 DEFAULT_SCHEDULE_TARGET_KEY: Final = "target_temperature"
 DEFAULT_TARGET_MODE: Final = TARGET_MODE_FIXED
@@ -36,6 +37,7 @@ DEFAULT_HALF_LIFE_DAYS: Final = 21
 DEFAULT_HISTORY_DAYS: Final = 30
 DEFAULT_UPDATE_INTERVAL_MINUTES: Final = 5
 DEFAULT_ALLOW_UNTRUSTED: Final = False
+DEFAULT_SELF_CALIBRATE: Final = True
 
 # Services
 SERVICE_RETRAIN: Final = "retrain"

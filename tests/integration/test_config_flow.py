@@ -17,6 +17,7 @@ from custom_components.room_thermal_model.const import (
     CONF_ROOM_SENSOR,
     CONF_SCHEDULE_ENTITY,
     CONF_SCHEDULE_TARGET_KEY,
+    CONF_SELF_CALIBRATE,
     CONF_TARGET_MODE,
     CONF_TARGET_TEMPERATURE,
     CONF_UPDATE_INTERVAL_MINUTES,
@@ -67,6 +68,7 @@ async def test_minimal_flow(hass: HomeAssistant) -> None:
         CONF_HALF_LIFE_DAYS: 21,
         CONF_HISTORY_DAYS: 30,
         CONF_UPDATE_INTERVAL_MINUTES: 5,
+        CONF_SELF_CALIBRATE: True,
     }
     assert result["result"].unique_id == CLIMATE
 
@@ -144,6 +146,7 @@ async def test_options_flow(hass: HomeAssistant) -> None:
             CONF_HISTORY_DAYS: 60,
             CONF_UPDATE_INTERVAL_MINUTES: 10,
             CONF_ALLOW_UNTRUSTED: True,
+            CONF_SELF_CALIBRATE: False,
         },
     )
     await hass.async_block_till_done()
@@ -155,8 +158,10 @@ async def test_options_flow(hass: HomeAssistant) -> None:
         CONF_HALF_LIFE_DAYS: 14.0,
         CONF_HISTORY_DAYS: 60,
         CONF_UPDATE_INTERVAL_MINUTES: 10,
+        CONF_SELF_CALIBRATE: False,
     }
     coordinator = entry.runtime_data
+    assert coordinator.self_calibrate is False
     assert coordinator.target_mode == "climate"
     assert coordinator.history_days == 60
     assert coordinator.allow_untrusted is True

@@ -75,7 +75,8 @@
           "history_days": "Historique pour l'apprentissage",
           "update_interval_minutes": "Intervalle de mise à jour",
           "allow_untrusted": "Publier les ajustements peu fiables",
-          "zone_group": "Groupe de zones"
+          "zone_group": "Groupe de zones",
+          "self_calibrate": "Auto-calibration"
         },
         "data_description": {
           "target_mode": "Utiliser une consigne fixe ou suivre la consigne du thermostat.",
@@ -84,7 +85,8 @@
           "history_days": "Jours d'historique du recorder chargés au premier démarrage et par l'action de réentraînement.",
           "update_interval_minutes": "Fréquence de recalcul de l'estimation, en minutes.",
           "allow_untrusted": "Publier les minutes de préchauffage même lorsque l'ajustement semble peu fiable (paramètre à sa limite, trop peu de chauffe, aucun gain sur la persistance). Désactivé par défaut : l'estimation est alors inconnue avec la raison untrusted_fit.",
-          "zone_group": "Facultatif. Les zones d'une même zone de chaudière (p. ex. l'étage) partagent les vitesses de chauffe et de perte de leurs voisines bien ajustées tant que leur propre modèle est immature. Laissez vide pour que chaque zone apprenne seule."
+          "zone_group": "Facultatif. Les zones d'une même zone de chaudière (p. ex. l'étage) partagent les vitesses de chauffe et de perte de leurs voisines bien ajustées tant que leur propre modèle est immature. Laissez vide pour que chaque zone apprenne seule.",
+          "self_calibrate": "Ajuste l'estimation du préchauffage selon le déroulement des montées en température précédentes (il faut plusieurs essais propres ; reste à 1,0 d'ici là)."
         }
       }
     },
