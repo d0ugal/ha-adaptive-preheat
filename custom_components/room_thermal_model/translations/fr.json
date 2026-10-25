@@ -163,6 +163,28 @@
           "description": "Entrée de configuration de la zone. Laissez vide pour toutes les zones."
         }
       }
+    },
+    "import_history": {
+      "name": "Importer l'historique",
+      "description": "Charge un fichier JSON-lines (une ligne par pas avec ts, indoor_c, outdoor_c, effort) dans une zone et réentraîne le modele. Les lignes plus anciennes que les jours d'historique sont ignorees.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Zone",
+          "description": "Entrée de configuration de la zone. Facultative s'il n'y a qu'une zone."
+        },
+        "entity_id": {
+          "name": "Entités",
+          "description": "Une entité quelconque de la zone. Indiquez une zone ou une entité (nécessaire s'il y a plusieurs zones)."
+        },
+        "path": {
+          "name": "Chemin",
+          "description": "Fichier JSON-lines dans un dossier autorisé. Un chemin relatif part du dossier de configuration."
+        },
+        "replace": {
+          "name": "Remplacer",
+          "description": "Efface d'abord les données apprises au lieu de fusionner (a la fusion, les lignes existantes l'emportent)."
+        }
+      }
     }
   },
   "exceptions": {
@@ -174,6 +196,15 @@
     },
     "update_failed": {
       "message": "La mise à jour de la zone {zone} a échoué : {error}"
+    },
+    "import_needs_one_zone": {
+      "message": "Un import nécessite exactement une zone : sélectionnez-la."
+    },
+    "path_not_allowed": {
+      "message": "{path} n'est pas dans un dossier autorisé (voir allowlist_external_dirs)."
+    },
+    "import_failed": {
+      "message": "Échec de l'import : {error}"
     }
   }
 }

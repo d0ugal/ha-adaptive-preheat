@@ -163,6 +163,28 @@
           "description": "Konfigurationseintrag der Zone. Leer lassen für alle Zonen."
         }
       }
+    },
+    "import_history": {
+      "name": "Verlauf importieren",
+      "description": "Lädt eine JSON-Lines-Datei (eine Zeile pro Zeitschritt mit ts, indoor_c, outdoor_c, effort) in eine Zone und trainiert neu. Zeilen, die älter als die Verlaufstage sind, werden verworfen.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Zone",
+          "description": "Konfigurationseintrag der Zone. Optional, wenn es nur eine Zone gibt."
+        },
+        "entity_id": {
+          "name": "Entitäten",
+          "description": "Eine beliebige Entität der Zone. Zone oder Entitaet angeben (bei mehreren Zonen nötig)."
+        },
+        "path": {
+          "name": "Pfad",
+          "description": "JSON-Lines-Datei in einem erlaubten Ordner. Ein relativer Pfad bezieht sich auf den Konfigurationsordner."
+        },
+        "replace": {
+          "name": "Ersetzen",
+          "description": "Gelernte Daten zuerst verwerfen statt zusammenzuführen (beim Zusammenführen gewinnen vorhandene Zeilen)."
+        }
+      }
     }
   },
   "exceptions": {
@@ -174,6 +196,15 @@
     },
     "update_failed": {
       "message": "Aktualisierung der Zone {zone} fehlgeschlagen: {error}"
+    },
+    "import_needs_one_zone": {
+      "message": "Ein Import braucht genau eine Zone: bitte auswählen."
+    },
+    "path_not_allowed": {
+      "message": "{path} liegt nicht in einem erlaubten Ordner (siehe allowlist_external_dirs)."
+    },
+    "import_failed": {
+      "message": "Import fehlgeschlagen: {error}"
     }
   }
 }
