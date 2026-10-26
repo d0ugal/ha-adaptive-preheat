@@ -48,6 +48,7 @@ sys.path.insert(
 from rtm_core import ModelConfig, RCThermalModel, RunResult, RunScorer, Sample
 from rtm_core.base import RECOMMENDED_STEP_MINUTES
 from rtm_core.calibration import MIN_RUNS
+from rtm_core.rule_model import RuleModel, RunSample, fit_least_squares
 
 EFFORT_HIGH = 0.5
 MAX_PAUSE_MINUTES = 15.0
@@ -321,6 +322,37 @@ class RollingModel:
         return model if model.parameters() is not None else None
 
 
+def score_rc(
+    rows: Sequence[Sample],
+    episodes: Sequence[Episode],
+    refit_days: float = REFIT_DAYS,
+    history_days: float = HISTORY_DAYS,
+    step_minutes: float = RECOMMENDED_STEP_MINUTES,
+    effort_power: float = 1.0,
+) -> tuple[list[RunResult], list[float], RunScorer]:
+    """Score every episode with the RC model fitted only on data before it."""
+    rolling = RollingModel(rows, refit_days, history_days, step_minutes, effort_power)
+    scorer = RunScorer()
+    results: list[RunResult] = []
+    factors: list[float] = []
+    target = [0.0]
+
+    def predict(row: Sample) -> float | None:
+        model = rolling.model_at(row.ts)
+        if model is None or row.indoor_c is None:
+            return None
+        return model.preheat(row.ts, row.indoor_c, target[0], row.outdoor_c).minutes
+
+    for episode in episodes:
+        target[0] = episode.target_c
+        factor = scorer.calibration().factor
+        result = score_episode(scorer, rows, episode, predict)
+        if result is not None:
+            results.append(result)
+            factors.append(_factor_applied(result, factor))
+    return results, factors, scorer
+
+
 def backtest_room(
     room: str,
     rows: Sequence[Sample],
@@ -333,26 +365,129 @@ def backtest_room(
 ) -> RoomReport:
     """Run the whole back-test for one room."""
     episodes = find_episodes(rows, effort_high=effort_high, min_rise_k=min_rise_k)
-    rolling = RollingModel(rows, refit_days, history_days, step_minutes, effort_power)
+    results, factors, scorer = score_rc(
+        rows, episodes, refit_days, history_days, step_minutes, effort_power
+    )
+    return summarise(room, len(episodes), results, factors, scorer.calibration().factor)
+
+
+# ------------------------------------------------------------------ run-level baselines
+
+ONLINE = "online"
+LEAST_SQUARES = "least_squares"
+
+
+def score_rule(
+    rows: Sequence[Sample], episodes: Sequence[Episode], learner: str
+) -> list[RunResult]:
+    """Score every episode with the run-level rule, learning only from earlier runs.
+
+    The rule needs only the gap to the target and the target's lift over outdoor, both known
+    when a run opens, and it learns from each finished clean run.
+    """
     scorer = RunScorer()
+    model = RuleModel()
+    history: list[RunSample] = []
     results: list[RunResult] = []
-    factors: list[float] = []
+    target = [0.0]
+    lift_at_open = [0.0]
 
     def predict(row: Sample) -> float | None:
-        model = rolling.model_at(row.ts)
-        if model is None or row.indoor_c is None:
+        if row.indoor_c is None:
             return None
-        return model.preheat(row.ts, row.indoor_c, target[0], row.outdoor_c).minutes
+        lift_at_open[0] = 0.0 if row.outdoor_c is None else target[0] - row.outdoor_c
+        return model.predict(target[0] - row.indoor_c, lift_at_open[0])
 
-    target = [0.0]
     for episode in episodes:
         target[0] = episode.target_c
-        factor = scorer.calibration().factor
         result = score_episode(scorer, rows, episode, predict)
-        if result is not None:
-            results.append(result)
-            factors.append(_factor_applied(result, factor))
-    return summarise(room, len(episodes), results, factors, scorer.calibration().factor)
+        if result is None:
+            continue
+        results.append(result)
+        if result.clean and result.error_minutes is not None:
+            run = RunSample(
+                result.target_c - result.start_c, lift_at_open[0], result.actual_minutes
+            )
+            if learner == ONLINE:
+                model = model.update_online(run)
+            else:
+                history.append(run)
+                model = fit_least_squares(history)
+    return results
+
+
+@dataclass(frozen=True)
+class Comparison:
+    """MAE in minutes of each predictor on the runs every one of them scored (same runs)."""
+
+    room: str
+    runs: int
+    rc_mae: float | None
+    rc_cal_mae: float | None
+    online_mae: float | None
+    online_cal_mae: float | None
+    ols_mae: float | None
+    ols_cal_mae: float | None
+
+
+def _by_start(results: Iterable[RunResult]) -> dict[datetime, RunResult]:
+    return {r.started_at: r for r in results if r.clean and r.error_minutes is not None}
+
+
+def compare_baselines(
+    room: str,
+    rows: Sequence[Sample],
+    refit_days: float = REFIT_DAYS,
+    history_days: float = HISTORY_DAYS,
+    effort_high: float = EFFORT_HIGH,
+    min_rise_k: float = MIN_RISE_K,
+    step_minutes: float = RECOMMENDED_STEP_MINUTES,
+    effort_power: float = 1.0,
+) -> Comparison:
+    """RC model against the two run-level rules, on the runs all three scored."""
+    episodes = find_episodes(rows, effort_high=effort_high, min_rise_k=min_rise_k)
+    rc = _by_start(
+        score_rc(rows, episodes, refit_days, history_days, step_minutes, effort_power)[0]
+    )
+    online = _by_start(score_rule(rows, episodes, ONLINE))
+    ols = _by_start(score_rule(rows, episodes, LEAST_SQUARES))
+    common = sorted(set(rc) & set(online) & set(ols))
+
+    def mae(group: dict[datetime, RunResult], calibrated: bool) -> float | None:
+        errors = [
+            r.published_error_minutes if calibrated else r.error_minutes
+            for r in (group[k] for k in common)
+        ]
+        return _mean(abs(e) for e in errors if e is not None)
+
+    return Comparison(
+        room,
+        len(common),
+        mae(rc, False),
+        mae(rc, True),
+        mae(online, False),
+        mae(online, True),
+        mae(ols, False),
+        mae(ols, True),
+    )
+
+
+def format_comparison(rows: Sequence[Comparison]) -> str:
+    head = (
+        f"{'room':<16}{'runs':>5}{'RC':>8}{'RC cal':>8}{'online':>8}{'on cal':>8}"
+        f"{'OLS':>8}{'OLS cal':>8}"
+    )
+    lines = [head, "-" * len(head)]
+    lines.extend(
+        f"{c.room:<16}{c.runs:>5}{_fmt(c.rc_mae, '.1f'):>8}{_fmt(c.rc_cal_mae, '.1f'):>8}"
+        f"{_fmt(c.online_mae, '.1f'):>8}{_fmt(c.online_cal_mae, '.1f'):>8}"
+        f"{_fmt(c.ols_mae, '.1f'):>8}{_fmt(c.ols_cal_mae, '.1f'):>8}"
+        for c in rows
+    )
+    lines.append(
+        "MAE in minutes on the runs all three predictors scored; cal = after self-calibration"
+    )
+    return "\n".join(lines)
 
 
 def _factor_applied(result: RunResult, fallback: float) -> float:
@@ -412,8 +547,32 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=1.0,
         help="raise the effort the model sees to this power (0.5 = square root)",
     )
+    parser.add_argument(
+        "--baselines",
+        action="store_true",
+        help="compare the RC model with the run-level rules instead of the usual table",
+    )
     parser.add_argument("--json", action="store_true", help="print JSON instead of a table")
     args = parser.parse_args(argv)
+    if args.baselines:
+        comparisons = [
+            compare_baselines(
+                path.stem,
+                load_rows(path),
+                args.refit_days,
+                args.history_days,
+                args.effort,
+                args.min_rise,
+                args.step_minutes,
+                args.effort_power,
+            )
+            for path in args.files
+        ]
+        if args.json:
+            print(json.dumps([c.__dict__ for c in comparisons], indent=2))
+        else:
+            print(format_comparison(comparisons))
+        return 0
     reports = [
         backtest_room(
             path.stem,
