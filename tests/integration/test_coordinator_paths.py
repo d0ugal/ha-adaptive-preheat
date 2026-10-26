@@ -12,11 +12,11 @@ from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from custom_components.room_thermal_model.coordinator import (
+from custom_components.adaptive_preheat.coordinator import (
     RTMCoordinator,
     parse_arrival,
 )
-from custom_components.room_thermal_model.rtm_core.base import PreheatEstimate, Sample
+from custom_components.adaptive_preheat.rtm_core.base import PreheatEstimate, Sample
 
 from .conftest import (
     ARRIVAL,

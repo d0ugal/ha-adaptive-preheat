@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-INTEGRATION_DIR = Path(__file__).resolve().parents[2] / "custom_components" / "room_thermal_model"
+INTEGRATION_DIR = Path(__file__).resolve().parents[2] / "custom_components" / "adaptive_preheat"
 if str(INTEGRATION_DIR) not in sys.path:
     sys.path.insert(0, str(INTEGRATION_DIR))
 

@@ -18,12 +18,12 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.room_thermal_model.const import DOMAIN
-from custom_components.room_thermal_model.diagnostics import (
+from custom_components.adaptive_preheat.const import DOMAIN
+from custom_components.adaptive_preheat.diagnostics import (
     async_get_config_entry_diagnostics,
 )
-from custom_components.room_thermal_model.rtm_core.base import Sample
-from custom_components.room_thermal_model.rtm_core.synthetic import generate, radiator_room
+from custom_components.adaptive_preheat.rtm_core.base import Sample
+from custom_components.adaptive_preheat.rtm_core.synthetic import generate, radiator_room
 
 from .conftest import (
     ARRIVAL,

@@ -7,7 +7,7 @@
       "extra-files": [
         {
           "type": "json",
-          "path": "custom_components/room_thermal_model/manifest.json",
+          "path": "custom_components/adaptive_preheat/manifest.json",
           "jsonpath": "$.version"
         }
       ]

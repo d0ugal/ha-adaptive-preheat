@@ -12,14 +12,14 @@ from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
 from sqlalchemy.exc import SQLAlchemyError
 
-from custom_components.room_thermal_model import history
-from custom_components.room_thermal_model.const import HISTORY_CHUNK_DAYS
-from custom_components.room_thermal_model.history import (
+from custom_components.adaptive_preheat import history
+from custom_components.adaptive_preheat.const import HISTORY_CHUNK_DAYS
+from custom_components.adaptive_preheat.history import (
     HistoryReducer,
     async_load_zone_history,
     reduce_states,
 )
-from custom_components.room_thermal_model.inputs import ZoneInputs
+from custom_components.adaptive_preheat.inputs import ZoneInputs
 
 from .conftest import CLIMATE, OUTDOOR, climate_attrs
 

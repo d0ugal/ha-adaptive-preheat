@@ -6,7 +6,7 @@ from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
-from custom_components.room_thermal_model.const import (
+from custom_components.adaptive_preheat.const import (
     CONF_ALLOW_UNTRUSTED,
     CONF_ARRIVAL_SENSOR,
     CONF_CLIMATE,
@@ -26,7 +26,7 @@ from custom_components.room_thermal_model.const import (
     CONF_ZONE_NAME,
     DOMAIN,
 )
-from custom_components.room_thermal_model.rtm_core.base import RECOMMENDED_STEP_MINUTES
+from custom_components.adaptive_preheat.rtm_core.base import RECOMMENDED_STEP_MINUTES
 
 from .conftest import (
     ARRIVAL,

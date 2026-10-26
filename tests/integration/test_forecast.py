@@ -9,7 +9,7 @@ import pytest
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError
 
-from custom_components.room_thermal_model.forecast import WeatherForecast, parse_forecast
+from custom_components.adaptive_preheat.forecast import WeatherForecast, parse_forecast
 
 from .conftest import WEATHER
 

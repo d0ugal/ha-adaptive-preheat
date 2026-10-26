@@ -8,7 +8,7 @@ from freezegun.api import FrozenDateTimeFactory
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 
-from custom_components.room_thermal_model.coordinator import RTMCoordinator
+from custom_components.adaptive_preheat.coordinator import RTMCoordinator
 
 from .conftest import CLIMATE, SLUG, climate_attrs, make_entry, set_inputs, setup_entry
 

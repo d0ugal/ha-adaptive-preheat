@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Learning-curve simulation of the Room Thermal Model on synthetic rooms.
+"""Learning-curve simulation of the Adaptive Preheat on synthetic rooms.
 
 Standalone: imports only ``rtm_core`` (no Home Assistant). For each synthetic room the
 raw samples are fed online with ``add_sample``; every simulated hour ``fit_due`` is
@@ -22,7 +22,7 @@ from datetime import timedelta
 from pathlib import Path
 
 sys.path.insert(
-    0, str(Path(__file__).resolve().parent.parent / "custom_components" / "room_thermal_model")
+    0, str(Path(__file__).resolve().parent.parent / "custom_components" / "adaptive_preheat")
 )
 
 from rtm_core import ModelConfig, RCThermalModel

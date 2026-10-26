@@ -8,8 +8,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from homeassistant.core import State
 
-from custom_components.room_thermal_model.history import reduce_states
-from custom_components.room_thermal_model.inputs import (
+from custom_components.adaptive_preheat.history import reduce_states
+from custom_components.adaptive_preheat.inputs import (
     ZoneInputs,
     build_sample,
     effort_from_climate,

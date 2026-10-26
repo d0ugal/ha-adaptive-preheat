@@ -206,10 +206,10 @@
   },
   "exceptions": {
     "not_loaded": {
-      "message": "Room Thermal Model has no loaded zone."
+      "message": "Adaptive Preheat has no loaded zone."
     },
     "unknown_zone": {
-      "message": "{target} does not belong to any Room Thermal Model zone."
+      "message": "{target} does not belong to any Adaptive Preheat zone."
     },
     "update_failed": {
       "message": "Update of zone {zone} failed: {error}"

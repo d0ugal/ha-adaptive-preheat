@@ -42,7 +42,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(
-    0, str(Path(__file__).resolve().parent.parent / "custom_components" / "room_thermal_model")
+    0, str(Path(__file__).resolve().parent.parent / "custom_components" / "adaptive_preheat")
 )
 
 from rtm_core import ModelConfig, RCThermalModel, RunResult, RunScorer, Sample

@@ -7,9 +7,9 @@ from datetime import UTC, datetime, timedelta
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.core import HomeAssistant
 
-from custom_components.room_thermal_model.coordinator import RTMCoordinator
-from custom_components.room_thermal_model.rtm_core import RunScorer
-from custom_components.room_thermal_model.rtm_core.scoring import RunResult
+from custom_components.adaptive_preheat.coordinator import RTMCoordinator
+from custom_components.adaptive_preheat.rtm_core import RunScorer
+from custom_components.adaptive_preheat.rtm_core.scoring import RunResult
 
 from .conftest import (
     ARRIVAL,

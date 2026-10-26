@@ -9,7 +9,7 @@ from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from custom_components.room_thermal_model.coordinator import RTMCoordinator
+from custom_components.adaptive_preheat.coordinator import RTMCoordinator
 
 from .conftest import (
     ARRIVAL,
