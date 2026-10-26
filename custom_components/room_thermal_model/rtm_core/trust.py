@@ -30,9 +30,10 @@ Checks (reason codes) and thresholds
     ``MAX_LIFT_FACTOR * (target - DESIGN_OUTDOOR_C)``. A heating system is sized to hold
     the target on a design-cold day (about -3 C in the UK); allowing it to be three times
     as strong as that is generous, and anything beyond means the loss rate is
-    under-estimated. At a 20.5 C target the limit is 70 K. Skipped when the loss rate sits
-    at its slow bound (``(a + c) / b`` is then unbounded by construction, the same
-    well-insulated case ``loss_rate_at_bound`` accepts). Being below the target is not
+    under-estimated. At a 20.5 C target the limit is 70 K. Skipped when the time constant
+    is a day or more (``SLOW_LOSS_PER_H``): ``(a + c) / b`` then says how hot the room would
+    get with unlimited heat, which a radiator cannot give, so for a well insulated house
+    the ratio is large by construction and tells nothing. Being below the target is not
     flagged: that is the legitimate ``unreachable``.
 ``too_little_heating``
     Fewer than ``MIN_HEATING_HOURS`` (10 h, half of what maturity counts as full) of
@@ -48,7 +49,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .fit import A_MIN, B_MAX, B_MIN, Prior
+from .fit import A_MIN, B_MAX, Prior
 
 BOUND_MARGIN = 0.05
 MIN_HEATING_RATE = 0.5
@@ -56,6 +57,7 @@ PRIOR_HEATING_TOLERANCE = 0.1
 MIN_HEATING_HOURS = 10.0
 DESIGN_OUTDOOR_C = -3.0
 MAX_LIFT_FACTOR = 3.0
+SLOW_LOSS_PER_H = 1.0 / 24.0  # a time constant of a day or more: a well insulated room
 MIN_SKILL = 0.03
 
 REASON_LOSS_RATE_AT_BOUND = "loss_rate_at_bound"
@@ -99,7 +101,7 @@ def assess_fit(facts: FitFacts, target_c: float) -> FitTrust:
     """Verdict for one fit at one target (only the max reachable check uses the target)."""
     reasons: list[str] = []
     f = facts
-    slow_loss = f.b <= B_MIN * (1.0 + BOUND_MARGIN)  # well insulated: fine, not a failure
+    slow_loss = f.b <= SLOW_LOSS_PER_H  # well insulated: the lift ratio below means nothing
     if f.b >= B_MAX * (1.0 - BOUND_MARGIN):
         reasons.append(REASON_LOSS_RATE_AT_BOUND)
     if f.a < max(MIN_HEATING_RATE, A_MIN):

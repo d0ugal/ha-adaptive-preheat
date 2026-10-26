@@ -170,7 +170,7 @@ Read `trusted` (true or false) and `trust_reasons` on `preheat_minutes` and
 | `heating_rate_low` | heating rate implausibly low (typical radiators give 1 to 4 K/h) | below 0.5 K/h |
 | `heating_rate_unlearnt` | heating rate is still the starting value | within 0.1 K/h of 3 K/h with under 10 h of heating |
 | `dead_time_at_bound` | the dead time search ran to the end of its range | 0 min, or within one step of the maximum (90 min) |
-| `max_reachable_implausible` | the room could be heated further above outdoor than any heating system sized for it | (a + c) / b above 3 x (target - (-3 °C)), 70 K at a 20.5 °C target; not judged when the loss is at its slow limit |
+| `max_reachable_implausible` | the room could be heated further above outdoor than any heating system sized for it | (a + c) / b above 3 x (target - (-3 °C)), 70 K at a 20.5 °C target; not judged when the time constant is a day or more |
 | `too_little_heating` | not enough heating seen to learn the response | under 10 h at effort 0.5 or more |
 | `not_evaluated` | no holdout evaluation yet | too little data |
 | `no_skill` | the holdout had heat-up episodes but the 60 minute forecast is not at least 3 % better than "temperature unchanged" | RMSE above 97 % of the baseline |
