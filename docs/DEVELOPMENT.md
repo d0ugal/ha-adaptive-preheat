@@ -20,13 +20,13 @@ comes with a test: pure logic goes in `tests/model/` (it must import `rtm_core` 
 Home Assistant), anything touching the coordinator or entities in `tests/integration/` using
 the `FakeModel` double.
 
-The model core, `custom_components/room_thermal_model/rtm_core/`, is standard-library Python
+The model core, `custom_components/adaptive_preheat/rtm_core/`, is standard-library Python
 with no Home Assistant imports, behind the `ThermalModel` interface. New learning logic
 belongs there so it stays testable alone. Run scoring (`rtm_core/scoring.py`) is an example.
 
 ## History import and the export script
 
-`room_thermal_model.import_history` reads a JSON-lines file (format in the README) with
+`adaptive_preheat.import_history` reads a JSON-lines file (format in the README) with
 `rtm_core/history_import.py`, a pure parser that rejects the whole file on any bad line.
 `scripts/export_prometheus_history.py` builds such a file from any Prometheus-compatible
 `query_range` API (stdlib only, chunks below 11000 points, one series per expression). Its
@@ -87,15 +87,16 @@ documented at the top of `.github/workflows/compat.yml`.
 ## Deploying to a Home Assistant host
 
 The integration is a normal custom component. The reference deployment keeps this repository as
-a git submodule, pinned to a release tag, and copies `custom_components/room_thermal_model/` into
+a git submodule, pinned to a release tag, and copies `custom_components/adaptive_preheat/` into
 the Home Assistant config on each update. Changes to a custom component need a full Home
 Assistant restart, not a reload.
 
-## Fork
+## Origin
 
-This is a fork of [giogandola98/ha-room-thermal-model](https://github.com/giogandola98/ha-room-thermal-model).
-The fork adds the CI and release tooling above, strict typing of the core, a coverage gate and run
-scoring. The learning model itself is the upstream design (see `PLAN.md`).
+This project began as a fork of [giogandola98/ha-room-thermal-model](https://github.com/giogandola98/ha-room-thermal-model)
+(MIT) and was renamed and detached once it had diverged. It adds the CI and release tooling above,
+strict typing of the core, a coverage gate, run scoring, fit trust and self-calibration. The first
+learning model is the upstream design (see `PLAN.md`).
 
 ## Evaluated and not adopted
 

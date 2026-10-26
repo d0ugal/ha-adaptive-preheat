@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A Home Assistant custom integration (`custom_components/room_thermal_model`) that learns a lumped RC thermal model per zone from recorder history and exposes sensors, chiefly minutes of heating needed to reach a target. It never controls anything. This is the `d0ugal` fork of `giogandola98/ha-room-thermal-model`; `docs/PLAN.md` is the original design, `docs/DEVELOPMENT.md` covers CI, releases and deployment, `README.md` the model maths and entities.
+A Home Assistant custom integration (`custom_components/adaptive_preheat`) that learns a lumped RC thermal model per zone from recorder history and exposes sensors, chiefly minutes of heating needed to reach a target. It never controls anything. It began as a fork of `giogandola98/ha-room-thermal-model` and is now a separate project (domain `adaptive_preheat`); `docs/PLAN.md` is the original design, `docs/DEVELOPMENT.md` covers CI, releases and deployment, `README.md` the model maths and entities.
 
 ## Commands
 
