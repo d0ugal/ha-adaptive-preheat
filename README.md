@@ -423,18 +423,33 @@ runs only). Calibration is applied chronologically, each run using only earlier 
 
 | Room | Clean runs | MAE | Bias | MAE calibrated | Bias calibrated |
 |---|---|---|---|---|---|
-| A | 28 | 381.0 | +379.7 | 188.6 | +185.5 |
-| B | 40 | 818.3 | +817.7 | 426.8 | +421.1 |
-| C | 31 | 936.2 | +933.9 | 483.3 | +478.9 |
+| A | 28 | 10.9 | +2.6 | 11.1 | +0.0 |
+| B | 40 | 27.5 | +27.0 | 17.5 | +4.6 |
+| C | 32 | 25.3 | +21.7 | 15.4 | +0.4 |
 | D | 0 | - | - | - | - |
-| E | 6 | 34.6 | +34.6 | 33.0 | +33.0 |
-| F | 88 | 977.1 | +969.5 | 465.1 | +457.7 |
+| E | 6 | 29.0 | +29.0 | 27.8 | +27.8 |
+| F | 89 | 41.3 | +21.0 | 39.2 | +10.0 |
 
 (Room D had no usable episodes: its temperature sensor reports whole degrees and does not track
-the room.) These baselines are poor: the fitted heating rate is far too low in winter, so the
-model predicts many hours for warm-ups that took one to three. Calibration halves the error
-because the factor sits at its 0.5 floor, but the predictions stay unusable. For comparison, on
-a synthetic radiator room with a well-fitted model the same procedure takes the MAE from 10.0 to
-6.6 minutes. The calibration helps in every room that had runs, and never hurts when the
-evidence is weak, which is why it is on by default; the large errors need a better fit, not a
-bigger factor.
+the room. Room E rarely heats.) Before the fit fix (a 5 minute grid and no floor on the robust
+scale) the same procedure gave errors of 380 to 980 minutes in rooms A, B, C and F, because the
+heating rate came out ten times too low. For comparison, on a synthetic radiator room with a
+well-fitted model the procedure takes the MAE from 10.0 to 6.6 minutes. The calibration
+removes most of the remaining bias, and never hurts when the evidence is weak, which is why it
+is on by default.
+
+#### Against a run-level rule
+
+`--baselines` scores the RC model against a rule that learns the minutes directly from
+finished runs, `deadtime + mass * gap + loss * (target - outdoor)` (the shape that
+Ecronika/ha-preheat learns), with two learners: a gradient step per run and a ridge least
+squares. All three are scored on the same runs and learn only from earlier ones:
+
+```bash
+uv run --managed-python --python 3.13 python scripts/backtest_runs.py history/room_a.jsonl --baselines
+```
+
+On the same history the RC model is clearly better in the room with the most regular heating
+(9 minutes against 24 to 31), about equal in two more, and a few minutes worse in room F, whose
+target follows presence. The rule has no use for the effort or the cooling between runs, so it
+is a useful fallback, not a replacement.
