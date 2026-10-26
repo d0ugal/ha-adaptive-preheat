@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.room_thermal_model.const import (
+from custom_components.adaptive_preheat.const import (
     CONF_CLIMATE,
     CONF_HALF_LIFE_DAYS,
     CONF_HISTORY_DAYS,
@@ -21,11 +21,11 @@ from custom_components.room_thermal_model.const import (
     CONF_ZONE_NAME,
     DOMAIN,
 )
-from custom_components.room_thermal_model.coordinator import RTMCoordinator
-from custom_components.room_thermal_model.diagnostics import async_get_config_entry_diagnostics
-from custom_components.room_thermal_model.rtm_core.shared_prior import GroupPrior
-from custom_components.room_thermal_model.rtm_core.synthetic import generate, radiator_room
-from custom_components.room_thermal_model.zone_group import DATA_KEY
+from custom_components.adaptive_preheat.coordinator import RTMCoordinator
+from custom_components.adaptive_preheat.diagnostics import async_get_config_entry_diagnostics
+from custom_components.adaptive_preheat.rtm_core.shared_prior import GroupPrior
+from custom_components.adaptive_preheat.rtm_core.synthetic import generate, radiator_room
+from custom_components.adaptive_preheat.zone_group import DATA_KEY
 
 from .conftest import setup_entry
 

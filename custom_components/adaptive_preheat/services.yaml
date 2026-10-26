@@ -9,7 +9,7 @@ retrain:
       required: false
       selector:
         config_entry:
-          integration: room_thermal_model
+          integration: adaptive_preheat
 reset:
   fields:
     entity_id:
@@ -21,7 +21,7 @@ reset:
       required: false
       selector:
         config_entry:
-          integration: room_thermal_model
+          integration: adaptive_preheat
 export_diagnostics:
   fields:
     entity_id:
@@ -33,14 +33,14 @@ export_diagnostics:
       required: false
       selector:
         config_entry:
-          integration: room_thermal_model
+          integration: adaptive_preheat
 import_history:
   fields:
     config_entry_id:
       required: false
       selector:
         config_entry:
-          integration: room_thermal_model
+          integration: adaptive_preheat
     entity_id:
       required: false
       selector:

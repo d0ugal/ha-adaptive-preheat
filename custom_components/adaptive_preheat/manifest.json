@@ -1,0 +1,19 @@
+{
+  "domain": "adaptive_preheat",
+  "name": "Adaptive Preheat",
+  "after_dependencies": [
+    "recorder",
+    "weather"
+  ],
+  "codeowners": [
+    "@d0ugal"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/d0ugal/ha-adaptive-preheat",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/d0ugal/ha-adaptive-preheat/issues",
+  "requirements": [],
+  "version": "0.5.0"
+}

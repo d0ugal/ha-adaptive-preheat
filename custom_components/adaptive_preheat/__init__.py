@@ -1,4 +1,4 @@
-"""Room Thermal Model: learns how fast each zone heats up and when to start heating."""
+"""Adaptive Preheat: learns how fast each zone heats up and when to start heating."""
 
 from __future__ import annotations
 

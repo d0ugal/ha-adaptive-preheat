@@ -19,7 +19,7 @@ if _ROOT not in sys.path:
 from homeassistant.core import HomeAssistant  # noqa: E402
 from pytest_homeassistant_custom_component.common import MockConfigEntry  # noqa: E402
 
-from custom_components.room_thermal_model.const import (  # noqa: E402
+from custom_components.adaptive_preheat.const import (  # noqa: E402
     CONF_ARRIVAL_SENSOR,
     CONF_CLIMATE,
     CONF_EFFORT_SENSOR,
@@ -33,7 +33,7 @@ from custom_components.room_thermal_model.const import (  # noqa: E402
     CONF_ZONE_NAME,
     DOMAIN,
 )
-from custom_components.room_thermal_model.rtm_core.base import (  # noqa: E402
+from custom_components.adaptive_preheat.rtm_core.base import (  # noqa: E402
     ForecastPoint,
     ModelConfig,
     PreheatEstimate,
@@ -63,7 +63,7 @@ def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
 def no_history() -> Generator[Any]:
     """Never hit the recorder: the bootstrap gets an empty history by default."""
     with patch(
-        "custom_components.room_thermal_model.coordinator.async_load_zone_history",
+        "custom_components.adaptive_preheat.coordinator.async_load_zone_history",
         return_value=[],
     ) as mock:
         yield mock
@@ -260,7 +260,7 @@ class FakeModel(ThermalModel):
 def fake_model() -> Generator[None]:
     """Replace the real model with :class:`FakeModel`."""
     with patch(
-        "custom_components.room_thermal_model.coordinator.create_model",
+        "custom_components.adaptive_preheat.coordinator.create_model",
         side_effect=lambda config: FakeModel(config=config),
     ):
         yield

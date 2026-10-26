@@ -1,5 +1,5 @@
 [project]
-name = "ha-room-thermal-model"
+name = "ha-adaptive-preheat"
 version = "0.5.0"
 description = "Generic Home Assistant integration that learns a physical thermal model per room and predicts preheat time."
 requires-python = ">=3.13"
@@ -43,7 +43,7 @@ ignore = [
     "ARG001",  # fixtures requested for their side effects (fake_model, freezer)
     "ARG002",  # test doubles mirror the signature of the object they replace
 ]
-"custom_components/room_thermal_model/rtm_core/synthetic.py" = [
+"custom_components/adaptive_preheat/rtm_core/synthetic.py" = [
     "S311",  # seeded random.Random generates reproducible synthetic data, not secrets
 ]
 
@@ -73,11 +73,11 @@ reportMissingModuleSource = "none"
 reportGeneralTypeIssues = "none"
 reportCallIssue = "none"
 # rtm_core is pure Python (no Home Assistant imports), so hold it to the strict standard.
-strict = ["custom_components/room_thermal_model/rtm_core"]
+strict = ["custom_components/adaptive_preheat/rtm_core"]
 
 [tool.coverage.run]
 branch = true
-source = ["custom_components/room_thermal_model"]
+source = ["custom_components/adaptive_preheat"]
 
 [tool.coverage.report]
 fail_under = 95

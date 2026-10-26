@@ -1,6 +1,6 @@
 """Persistent storage of the learnt zone model.
 
-Stored document (``.storage/room_thermal_model.<entry_id>``)::
+Stored document (``.storage/adaptive_preheat.<entry_id>``)::
 
     {
       "schema": 1,

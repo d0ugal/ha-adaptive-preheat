@@ -1,11 +1,11 @@
-"""Constants for Room Thermal Model."""
+"""Constants for Adaptive Preheat."""
 
 from __future__ import annotations
 
 from typing import Final
 
-DOMAIN: Final = "room_thermal_model"
-NAME: Final = "Room Thermal Model"
+DOMAIN: Final = "adaptive_preheat"
+NAME: Final = "Adaptive Preheat"
 
 # Config entry data (one entry per zone)
 CONF_ZONE_NAME: Final = "zone_name"

@@ -11,8 +11,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
-from custom_components.room_thermal_model.coordinator import RTMCoordinator
-from custom_components.room_thermal_model.rtm_core.base import PreheatEstimate
+from custom_components.adaptive_preheat.coordinator import RTMCoordinator
+from custom_components.adaptive_preheat.rtm_core.base import PreheatEstimate
 
 from .conftest import (
     ARRIVAL,

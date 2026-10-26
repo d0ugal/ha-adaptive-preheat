@@ -1,5 +1,5 @@
 {
-  "name": "Room Thermal Model",
+  "name": "Adaptive Preheat",
   "render_readme": true,
   "homeassistant": "2026.1.0"
 }

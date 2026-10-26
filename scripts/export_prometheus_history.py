@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Export room history from a Prometheus-compatible HTTP API as JSON lines.
 
-The output is the file format of the ``room_thermal_model.import_history`` service, one row
+The output is the file format of the ``adaptive_preheat.import_history`` service, one row
 per step: ``{"ts": ..., "indoor_c": ..., "outdoor_c": ..., "effort": ...}``. Standard
 library only. The range is fetched in chunks so every request stays below the 11000 point
 limit of Prometheus and Mimir. Each expression must return a single series.
