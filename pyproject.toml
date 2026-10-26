@@ -1,6 +1,6 @@
 [project]
 name = "ha-adaptive-preheat"
-version = "0.5.0"
+version = "0.6.0"
 description = "Generic Home Assistant integration that learns a physical thermal model per room and predicts preheat time."
 requires-python = ">=3.13"
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.6.0](https://github.com/d0ugal/ha-adaptive-preheat/compare/v0.5.0...v0.6.0) (2026-10-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* the integration domain changed from room_thermal_model to adaptive_preheat. Delete the zones under the old integration, remove the old custom_components/room_thermal_model directory, restart Home Assistant and add the zones again. Services are now adaptive_preheat.*; entity ids and the sensors are unchanged. Learnt models are not carried over (use import_history).
+
+### Features
+
+* rename the integration to Adaptive Preheat ([12888fe](https://github.com/d0ugal/ha-adaptive-preheat/commit/12888fe150bb60e56a4bba5969a5869db2a633b1))
+
+
+### Documentation
+
+* describe the new name, the origin and how to upgrade ([a67e2d8](https://github.com/d0ugal/ha-adaptive-preheat/commit/a67e2d8765a1f41bf068c3d703126f0c0f7af4e6))
+* move the reference material into pages under docs ([0a69c58](https://github.com/d0ugal/ha-adaptive-preheat/commit/0a69c58f13bfafa743d4d40a3ce4ba76eb05c6f1))
+* rework the README as a short front door with hat tips ([83a1ecb](https://github.com/d0ugal/ha-adaptive-preheat/commit/83a1ecbcb963d3686cb08835c5091628b28532df))
+
 ## [0.5.0](https://github.com/d0ugal/ha-room-thermal-model/compare/v0.4.0...v0.5.0) (2026-10-26)
 
 
