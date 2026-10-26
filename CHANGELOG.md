@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.0](https://github.com/d0ugal/ha-room-thermal-model/compare/v0.4.0...v0.5.0) (2026-10-26)
+
+
+### Features
+
+* add a run-level duration rule as a baseline ([ac9f0f2](https://github.com/d0ugal/ha-room-thermal-model/commit/ac9f0f26c7504c6b4676be756c14f9a0254f6045))
+* compare the RC model with the run-level rule in the back-test ([bee448e](https://github.com/d0ugal/ha-room-thermal-model/commit/bee448ee20a6053f59e94541846b7a2458ca8f18))
+
+
+### Documentation
+
+* refresh the back-test baseline and describe the rule comparison ([1a9464d](https://github.com/d0ugal/ha-room-thermal-model/commit/1a9464dd612dadc3780eab3941e4fa9638716d23))
+
 ## [0.4.0](https://github.com/d0ugal/ha-room-thermal-model/compare/v0.3.0...v0.4.0) (2026-10-26)
 
 
