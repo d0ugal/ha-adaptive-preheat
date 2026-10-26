@@ -26,6 +26,7 @@ from custom_components.room_thermal_model.const import (
     CONF_ZONE_NAME,
     DOMAIN,
 )
+from custom_components.room_thermal_model.rtm_core.base import RECOMMENDED_STEP_MINUTES
 
 from .conftest import (
     ARRIVAL,
@@ -272,3 +273,10 @@ async def test_schedule_default_and_stray_keys_are_dropped(hass: HomeAssistant) 
         assert result["type"] is FlowResultType.ABORT
         assert CONF_SCHEDULE_TARGET_KEY not in entry.data
         assert (CONF_SCHEDULE_ENTITY in entry.data) is (expected is not None)
+
+
+async def test_model_runs_on_the_recommended_grid_step(hass: HomeAssistant) -> None:
+    """Real sensors need the coarse step; the live sample timer keeps its own cadence."""
+    set_inputs(hass)
+    entry = await setup_entry(hass, make_entry(hass))
+    assert entry.runtime_data.model_config.step_minutes == RECOMMENDED_STEP_MINUTES

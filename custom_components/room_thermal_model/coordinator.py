@@ -86,6 +86,7 @@ from .inputs import (
 )
 from .rtm_core import Calibration, RunScorer, ScoringSummary, create_model
 from .rtm_core.base import (
+    RECOMMENDED_STEP_MINUTES,
     ForecastPoint,
     ModelConfig,
     PreheatEstimate,
@@ -234,7 +235,7 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
         self.self_calibrate: bool = bool(options.get(CONF_SELF_CALIBRATE, DEFAULT_SELF_CALIBRATE))
         self.history_days: float = float(options.get(CONF_HISTORY_DAYS, DEFAULT_HISTORY_DAYS))
         self.model_config = ModelConfig(
-            step_minutes=float(SAMPLE_INTERVAL_MINUTES),
+            step_minutes=RECOMMENDED_STEP_MINUTES,
             half_life_days=float(options.get(CONF_HALF_LIFE_DAYS, DEFAULT_HALF_LIFE_DAYS)),
             history_days=self.history_days,
         )

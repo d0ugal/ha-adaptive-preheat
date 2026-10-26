@@ -14,7 +14,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.room_thermal_model.const import DOMAIN
 from custom_components.room_thermal_model.coordinator import RTMCoordinator
-from custom_components.room_thermal_model.rtm_core.base import Sample
+from custom_components.room_thermal_model.rtm_core.base import RECOMMENDED_STEP_MINUTES, Sample
 from custom_components.room_thermal_model.rtm_core.synthetic import generate, radiator_room
 
 from .conftest import make_entry, set_inputs, setup_entry
@@ -142,7 +142,7 @@ async def test_imported_history_survives_a_restart(
 
     assert result["dropped_older_than_history_days"] == 0
     quality = coordinator.model.quality()
-    assert quality.samples > 5000
+    assert quality.samples > 0.9 * 20 * 24 * 60 / RECOMMENDED_STEP_MINUTES
     assert coordinator.model.parameters() is not None
     assert await hass.config_entries.async_unload(entry.entry_id)
     stored = hass_storage[f"{DOMAIN}.{entry.entry_id}"]["data"]

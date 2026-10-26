@@ -10,10 +10,16 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 if TYPE_CHECKING:
     from .shared_prior import GroupPrior
+
+# Grid step the integration runs the model on. The fit regresses on the temperature change
+# over one step, and a real sensor that moves in 0.1 K steps buries that change in noise
+# at 5 minutes (heating rate off by an order of magnitude); 15 minutes recovers it while
+# still resolving a radiator's dead time. ``ModelConfig`` keeps 5 for the synthetic rooms.
+RECOMMENDED_STEP_MINUTES: Final = 15.0
 
 
 @dataclass(frozen=True)
