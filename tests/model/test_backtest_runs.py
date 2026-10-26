@@ -188,3 +188,38 @@ def test_end_to_end_on_a_synthetic_room(tmp_path: Path) -> None:
     assert report.clean > 0
     assert report.mae is not None
     assert report.mae < 60
+
+
+def test_shape_effort_raises_the_effort_to_a_power() -> None:
+    assert bt.shape_effort(row(0, 18.0, 0.25), 1.0).effort == 0.25
+    assert bt.shape_effort(row(0, 18.0, 0.25), 0.5).effort == pytest.approx(0.5)
+    assert bt.shape_effort(row(0, 18.0, None), 0.5).effort is None
+    assert bt.shape_effort(row(0, 18.0, -0.1), 0.5).effort == 0.0  # never a complex number
+
+
+def test_step_and_effort_power_reach_the_model(tmp_path: Path) -> None:
+    """Both options change the model's input, not the episodes it is scored on."""
+    run = syn.generate(syn.radiator_room(), 25)
+    path = tmp_path / "bedroom_1.jsonl"
+    path.write_text(
+        "".join(
+            json.dumps(
+                {
+                    "ts": s.ts.isoformat(),
+                    "indoor_c": s.indoor_c,
+                    "outdoor_c": s.outdoor_c,
+                    "effort": s.effort,
+                }
+            )
+            + "\n"
+            for s in run.samples[::5]
+        )
+    )
+    rows = bt.load_rows(path)
+    base = bt.backtest_room("bedroom_1", rows, refit_days=10, step_minutes=5.0)
+    other = bt.backtest_room("bedroom_1", rows, refit_days=10, step_minutes=15.0, effort_power=0.5)
+    assert other.episodes == base.episodes  # found on the raw effort either way
+    assert other.mae is not None
+    assert other.mae != base.mae  # the model really saw different input
+    assert bt.main([str(path), "--step-minutes", "15", "--effort-power", "0.5"]) == 0
+    assert bt.RollingModel(rows, 10, 30)._step == bt.RECOMMENDED_STEP_MINUTES
