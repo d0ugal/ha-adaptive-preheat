@@ -10,7 +10,8 @@
           "path": "custom_components/adaptive_preheat/manifest.json",
           "jsonpath": "$.version"
         }
-      ]
+      ],
+      "bump-minor-pre-major": true
     }
   }
 }
