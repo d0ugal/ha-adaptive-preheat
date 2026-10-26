@@ -11,8 +11,11 @@ is not trusted (unless the user opted in to publishing anyway).
 Checks (reason codes) and thresholds
 ------------------------------------
 ``loss_rate_at_bound``
-    ``b`` within 5 % of ``B_MIN`` (time constant 95 h or more) or of ``B_MAX``. A bound
-    means the data did not identify the loss rate: the optimum lay outside the range.
+    ``b`` within 5 % of ``B_MAX`` (a time constant under about 0.5 h): the optimum lay
+    outside the range, so the data did not identify the loss rate. The slow end is NOT
+    flagged: a well insulated house really does lose heat over days (a time constant of
+    100 h or more), the loss is then negligible over a preheat horizon of hours, and a fit
+    that is pinned there still predicts well when it passes the skill check.
 ``heating_rate_low``
     ``a`` below 0.5 K/h. Typical radiators give 1 to 4 K/h; this also covers a pinned
     ``A_MIN`` floor. At this rate the estimate is dominated by noise.
@@ -25,10 +28,12 @@ Checks (reason codes) and thresholds
 ``max_reachable_implausible``
     The lift above outdoor at full effort, ``(a + c) / b``, exceeds
     ``MAX_LIFT_FACTOR * (target - DESIGN_OUTDOOR_C)``. A heating system is sized to hold
-    the target on a design-cold day (about -3 C in the UK); allowing it to be twice as
-    strong as that is generous, and anything beyond means the loss rate is
-    under-estimated. At a 20.5 C target the limit is 47 K, so 55 C at 8 C outdoor.
-    Being below the target is not flagged: that is the legitimate ``unreachable``.
+    the target on a design-cold day (about -3 C in the UK); allowing it to be three times
+    as strong as that is generous, and anything beyond means the loss rate is
+    under-estimated. At a 20.5 C target the limit is 70 K. Skipped when the loss rate sits
+    at its slow bound (``(a + c) / b`` is then unbounded by construction, the same
+    well-insulated case ``loss_rate_at_bound`` accepts). Being below the target is not
+    flagged: that is the legitimate ``unreachable``.
 ``too_little_heating``
     Fewer than ``MIN_HEATING_HOURS`` (10 h, half of what maturity counts as full) of
     usable heating at effort >= 0.5.
@@ -50,7 +55,7 @@ MIN_HEATING_RATE = 0.5
 PRIOR_HEATING_TOLERANCE = 0.1
 MIN_HEATING_HOURS = 10.0
 DESIGN_OUTDOOR_C = -3.0
-MAX_LIFT_FACTOR = 2.0
+MAX_LIFT_FACTOR = 3.0
 MIN_SKILL = 0.03
 
 REASON_LOSS_RATE_AT_BOUND = "loss_rate_at_bound"
@@ -94,7 +99,8 @@ def assess_fit(facts: FitFacts, target_c: float) -> FitTrust:
     """Verdict for one fit at one target (only the max reachable check uses the target)."""
     reasons: list[str] = []
     f = facts
-    if f.b <= B_MIN * (1.0 + BOUND_MARGIN) or f.b >= B_MAX * (1.0 - BOUND_MARGIN):
+    slow_loss = f.b <= B_MIN * (1.0 + BOUND_MARGIN)  # well insulated: fine, not a failure
+    if f.b >= B_MAX * (1.0 - BOUND_MARGIN):
         reasons.append(REASON_LOSS_RATE_AT_BOUND)
     if f.a < max(MIN_HEATING_RATE, A_MIN):
         reasons.append(REASON_HEATING_RATE_LOW)
@@ -102,7 +108,7 @@ def assess_fit(facts: FitFacts, target_c: float) -> FitTrust:
         reasons.append(REASON_HEATING_RATE_UNLEARNT)
     if f.dead_time_minutes <= 0 or f.dead_time_minutes >= f.max_dead_time_minutes - f.step_minutes:
         reasons.append(REASON_DEAD_TIME_AT_BOUND)
-    if f.b > 0 and (f.a + f.c) / f.b > max_lift_k(target_c):
+    if not slow_loss and f.b > 0 and (f.a + f.c) / f.b > max_lift_k(target_c):
         reasons.append(REASON_MAX_REACHABLE)
     if f.heating_hours < MIN_HEATING_HOURS:
         reasons.append(REASON_TOO_LITTLE_HEATING)

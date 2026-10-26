@@ -43,9 +43,15 @@ def test_good_fit_is_trusted() -> None:
     assert verdict.reasons == ()
 
 
-@pytest.mark.parametrize("b", [B_MIN, B_MIN * 1.04, B_MAX, B_MAX * 0.96])
-def test_loss_rate_at_a_bound(b: float) -> None:
+@pytest.mark.parametrize("b", [B_MAX, B_MAX * 0.96])
+def test_loss_rate_at_the_fast_bound(b: float) -> None:
     assert "loss_rate_at_bound" in reasons(b=b, a=3.0 * b / 0.1, c=0.0)
+
+
+@pytest.mark.parametrize("b", [B_MIN, B_MIN * 1.04])
+def test_slow_loss_is_a_well_insulated_house_not_a_failure(b: float) -> None:
+    """A time constant of 100 h or more is negligible over a preheat of hours."""
+    assert reasons(b=b, a=2.5, c=0.1) == ()
 
 
 def test_loss_rate_just_inside_the_bounds_is_fine() -> None:
@@ -90,6 +96,15 @@ def test_max_reachable_limit_derives_from_target_and_design_temperature() -> Non
     assert "max_reachable_implausible" in assess_fit(facts, 10.0).reasons
 
 
+def test_max_reachable_is_not_judged_when_the_loss_is_at_its_slow_bound() -> None:
+    """(a + c) / b is unbounded there by construction; skill decides, not that ratio."""
+    slow = replace(GOOD, a=3.0, b=B_MIN, c=0.1)
+    assert (slow.a + slow.c) / slow.b > max_lift_k(20.5)
+    assert assess_fit(slow, 20.5).trusted
+    # one step off the bound the ratio is a real claim again
+    assert "max_reachable_implausible" in assess_fit(replace(slow, b=B_MIN * 1.2), 20.5).reasons
+
+
 def test_max_reachable_below_the_target_is_not_junk() -> None:
     assert assess_fit(replace(GOOD, a=0.6, b=0.1, c=0.0), 20.5).trusted
 
@@ -114,7 +129,7 @@ def test_no_skill_only_when_the_holdout_had_heating() -> None:
 
 
 def test_reasons_accumulate() -> None:
-    junk = replace(GOOD, a=0.05, b=B_MIN, dead_time_minutes=0.0, heating_hours=0.0)
+    junk = replace(GOOD, a=0.05, b=B_MAX, dead_time_minutes=0.0, heating_hours=0.0)
     verdict = assess_fit(junk, 20.5)
     assert not verdict.trusted
     assert {
