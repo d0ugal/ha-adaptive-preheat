@@ -50,7 +50,7 @@ Entities use `translation_key == key`, `unique_id = f"{entry_id}_{key}"` and an 
 
 ## Privacy
 
-This repository is public. Never commit, push or write into a PR, issue or release anything personal or private: real names of people or rooms, home network addresses or hostnames, locations, email addresses, credentials, real file paths, real entity ids or any real data rows. Use generic names (`living_room`, `bedroom_1`, `192.0.2.1`, `example.com`). Commit with the GitHub noreply identity, never a personal email. `scripts/check_privacy.py` (the `Privacy` workflow) enforces the generic part; it can also read a denylist of personal terms from a file kept outside the repo, for a local pre-push hook. Report results from real data with anonymised room names.
+This repository is public. Never commit, push or write into a PR, issue or release anything personal or private: real names of people or rooms, home network addresses or hostnames, locations, email addresses, credentials, real file paths, real entity ids or any real data rows. Use generic names (`living_room`, `bedroom_1`, `192.0.2.1`, `example.com`). Commit with the GitHub noreply identity, never a personal email. The check covers commit authors; GitHub itself stamps the merging user's identity as committer on rebase merges, which cannot be avoided from here. `scripts/check_privacy.py` (the `Privacy` workflow) enforces the generic part; it can also read a denylist of personal terms from a file kept outside the repo, for a local pre-push hook. Report results from real data with anonymised room names.
 
 ## Workflow
 
