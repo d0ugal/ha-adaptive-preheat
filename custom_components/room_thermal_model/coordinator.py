@@ -471,7 +471,13 @@ class RTMCoordinator(DataUpdateCoordinator[ZoneData]):
                                     now, indoor, arrival_target, outdoor, forecast
                                 )
                             lead = self._lead_minutes(
-                                now, indoor, arrival_target, outdoor, forecast, lead_estimate, minutes
+                                now,
+                                indoor,
+                                arrival_target,
+                                outdoor,
+                                forecast,
+                                lead_estimate,
+                                minutes,
                             )
         except MODEL_ERRORS as err:
             raise UpdateFailed(
