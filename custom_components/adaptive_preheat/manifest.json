@@ -15,5 +15,5 @@
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/d0ugal/ha-adaptive-preheat/issues",
   "requirements": [],
-  "version": "0.5.0"
+  "version": "0.6.0"
 }
