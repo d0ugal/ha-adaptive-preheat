@@ -2206,7 +2206,7 @@ wheels = [
 
 [[package]]
 name = "ha-room-thermal-model"
-version = "0.4.0"
+version = "0.5.0"
 source = { virtual = "." }
 
 [package.dev-dependencies]
