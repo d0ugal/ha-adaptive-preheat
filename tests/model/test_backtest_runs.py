@@ -223,3 +223,45 @@ def test_step_and_effort_power_reach_the_model(tmp_path: Path) -> None:
     assert other.mae != base.mae  # the model really saw different input
     assert bt.main([str(path), "--step-minutes", "15", "--effort-power", "0.5"]) == 0
     assert bt.RollingModel(rows, 10, 30)._step == bt.RECOMMENDED_STEP_MINUTES
+
+
+def test_baseline_comparison_scores_the_same_runs(tmp_path: Path) -> None:
+    run = syn.generate(syn.radiator_room(), 25)
+    path = tmp_path / "bedroom_1.jsonl"
+    path.write_text(
+        "".join(
+            json.dumps(
+                {
+                    "ts": s.ts.isoformat(),
+                    "indoor_c": s.indoor_c,
+                    "outdoor_c": s.outdoor_c,
+                    "effort": s.effort,
+                }
+            )
+            + "\n"
+            for s in run.samples[::5]
+        )
+    )
+    rows = bt.load_rows(path)
+    comparison = bt.compare_baselines("bedroom_1", rows, refit_days=10)
+    assert comparison.runs > 0
+    for value in (
+        comparison.rc_mae,
+        comparison.online_mae,
+        comparison.ols_mae,
+        comparison.rc_cal_mae,
+    ):
+        assert value is not None
+        assert value >= 0
+    table = bt.format_comparison([comparison])
+    assert "bedroom_1" in table
+    assert "OLS" in table
+    assert bt.main([str(path), "--baselines", "--refit-days", "10"]) == 0
+    assert bt.main([str(path), "--baselines", "--json", "--refit-days", "10"]) == 0
+
+
+def test_rule_baseline_learns_from_each_clean_run() -> None:
+    rows = ramp() * 1
+    episodes = bt.find_episodes(rows)
+    assert bt.score_rule(rows, episodes, bt.ONLINE) is not None
+    assert bt.score_rule(rows, episodes, bt.LEAST_SQUARES) is not None
