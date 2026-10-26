@@ -14,6 +14,7 @@ from rtm_core.trust import (
     MAX_LIFT_FACTOR,
     MIN_HEATING_HOURS,
     MIN_SKILL,
+    SLOW_LOSS_PER_H,
     FitFacts,
     assess_fit,
     max_lift_k,
@@ -96,13 +97,16 @@ def test_max_reachable_limit_derives_from_target_and_design_temperature() -> Non
     assert "max_reachable_implausible" in assess_fit(facts, 10.0).reasons
 
 
-def test_max_reachable_is_not_judged_when_the_loss_is_at_its_slow_bound() -> None:
-    """(a + c) / b is unbounded there by construction; skill decides, not that ratio."""
+def test_max_reachable_is_not_judged_for_a_slow_loss() -> None:
+    """With a time constant of a day or more (a + c) / b is large by construction."""
     slow = replace(GOOD, a=3.0, b=B_MIN, c=0.1)
     assert (slow.a + slow.c) / slow.b > max_lift_k(20.5)
     assert assess_fit(slow, 20.5).trusted
-    # one step off the bound the ratio is a real claim again
-    assert "max_reachable_implausible" in assess_fit(replace(slow, b=B_MIN * 1.2), 20.5).reasons
+    day = replace(GOOD, a=3.0, b=SLOW_LOSS_PER_H, c=0.1)  # 24 h exactly, still slow
+    assert assess_fit(day, 20.5).trusted
+    # a faster loss makes the ratio a real claim again
+    fast = replace(GOOD, a=5.0, b=0.05, c=0.1)  # 20 h
+    assert "max_reachable_implausible" in assess_fit(fast, 20.5).reasons
 
 
 def test_max_reachable_below_the_target_is_not_junk() -> None:
