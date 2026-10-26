@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
@@ -93,6 +94,33 @@ def _commit(repo: Path, name: str, content: str, message: str, email: str) -> No
     _git(repo, "-c", "user.name=Tester", "-c", f"user.email={email}", "commit", "-q", "-m", message)
 
 
+def test_committer_identity_is_not_checked(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    noreply = "1+user@users.noreply.github.com"
+    _commit(repo, "a.txt", "hello\n", "init", noreply)
+    base = subprocess.run(
+        ["git", "rev-parse", "HEAD"],  # noqa: S607
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    (repo / "b.txt").write_text("fine\n", encoding="utf-8")
+    _git(repo, "add", "b.txt")
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "Author",
+        "GIT_AUTHOR_EMAIL": noreply,
+        "GIT_COMMITTER_NAME": "Merger",
+        "GIT_COMMITTER_EMAIL": "merger@mail.test",
+    }
+    _git(repo, "commit", "-q", "-m", "feat: x", env=env)
+    monkeypatch.chdir(repo)
+    assert cp.main(["--base", base, "--head", "HEAD"]) == 0
+
+
 def test_scan_range_end_to_end(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -117,6 +145,7 @@ def test_scan_range_end_to_end(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, 
     assert cp.main(["--base", base, "--head", "HEAD"]) == 1
     out = capsys.readouterr().out
     assert "personal commit email" in out
+    assert "author" in out
     assert "private IPv4 address" in out
     assert "bad.txt" in out
     assert "uv.lock" not in out  # excluded from content scanning

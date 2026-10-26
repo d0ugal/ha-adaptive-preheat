@@ -1,7 +1,7 @@
 """Block personal or private information from reaching this public repository.
 
 Scans everything a range of commits adds (file names, added lines, commit messages and
-author/committer identities) for:
+author identities) for:
 
 * private network addresses, home directory paths and local tooling paths;
 * email addresses other than GitHub noreply or documentation ones;
@@ -95,7 +95,7 @@ def scan_text(text: str, where: str, denylist: list[re.Pattern[str]]) -> list[Fi
 
 
 def scan_identity(name_and_email: str, where: str) -> list[Finding]:
-    """Commit author and committer emails must be GitHub noreply addresses."""
+    """A commit author email must be a GitHub noreply address."""
     match = EMAIL.search(name_and_email)
     if match is None:
         return []
@@ -121,9 +121,10 @@ def scan_range(base: str, head: str, denylist: list[re.Pattern[str]]) -> list[Fi
     findings: list[Finding] = []
     for commit in _git("rev-list", f"{base}..{head}").split():
         short = commit[:8]
-        identities = _git("log", "-1", "--format=%an <%ae>%n%cn <%ce>", commit).splitlines()
-        for ident in identities:
-            findings += scan_identity(ident, f"commit {short} identity")
+        # Authors only: GitHub stamps the merging user's own identity as the committer on
+        # rebase merges and branch updates, which no commit can avoid.
+        author = _git("log", "-1", "--format=%an <%ae>", commit).strip()
+        findings += scan_identity(author, f"commit {short} author")
         message = _git("log", "-1", "--format=%B", commit)
         findings += scan_text(message, f"commit {short} message", denylist)
         files = _git("diff-tree", "--no-commit-id", "--name-only", "-r", commit).splitlines()
