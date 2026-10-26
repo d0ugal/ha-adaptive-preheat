@@ -37,7 +37,7 @@ import bisect
 import json
 import sys
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -46,6 +46,7 @@ sys.path.insert(
 )
 
 from rtm_core import ModelConfig, RCThermalModel, RunResult, RunScorer, Sample
+from rtm_core.base import RECOMMENDED_STEP_MINUTES
 from rtm_core.calibration import MIN_RUNS
 
 EFFORT_HIGH = 0.5
@@ -265,11 +266,32 @@ def summarise(
 # ------------------------------------------------------------------ model plumbing
 
 
+def shape_effort(row: Sample, power: float) -> Sample:
+    """The row with its effort raised to ``power`` (what the model learns from).
+
+    Valve demand overstates the heat a radiator gives at high openings, so a power below 1
+    (0.5 is the square root) can track the room better. Episodes are still found on the
+    raw effort so variants are scored on the same runs.
+    """
+    if power == 1.0 or row.effort is None:
+        return row
+    return replace(row, effort=max(row.effort, 0.0) ** power)
+
+
 class RollingModel:
     """A model refitted at most every ``refit_days`` on data strictly before the run."""
 
-    def __init__(self, rows: Sequence[Sample], refit_days: float, history_days: float) -> None:
+    def __init__(
+        self,
+        rows: Sequence[Sample],
+        refit_days: float,
+        history_days: float,
+        step_minutes: float = RECOMMENDED_STEP_MINUTES,
+        effort_power: float = 1.0,
+    ) -> None:
         self._rows = rows
+        self._step = step_minutes
+        self._power = effort_power
         self._times = [r.ts for r in rows]
         self._refit = timedelta(days=refit_days)
         self._history = timedelta(days=history_days)
@@ -290,8 +312,10 @@ class RollingModel:
         window = self._rows[lo:hi]
         if not window:
             return None
-        model = RCThermalModel(ModelConfig(history_days=self._history.days))
-        model.load_history(window, replace=True)
+        model = RCThermalModel(
+            ModelConfig(history_days=self._history.days, step_minutes=self._step)
+        )
+        model.load_history([shape_effort(r, self._power) for r in window], replace=True)
         self.fits += 1
         model.fit(window[-1].ts)
         return model if model.parameters() is not None else None
@@ -304,10 +328,12 @@ def backtest_room(
     history_days: float = HISTORY_DAYS,
     effort_high: float = EFFORT_HIGH,
     min_rise_k: float = MIN_RISE_K,
+    step_minutes: float = RECOMMENDED_STEP_MINUTES,
+    effort_power: float = 1.0,
 ) -> RoomReport:
     """Run the whole back-test for one room."""
     episodes = find_episodes(rows, effort_high=effort_high, min_rise_k=min_rise_k)
-    rolling = RollingModel(rows, refit_days, history_days)
+    rolling = RollingModel(rows, refit_days, history_days, step_minutes, effort_power)
     scorer = RunScorer()
     results: list[RunResult] = []
     factors: list[float] = []
@@ -374,6 +400,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--history-days", type=float, default=HISTORY_DAYS)
     parser.add_argument("--effort", type=float, default=EFFORT_HIGH)
     parser.add_argument("--min-rise", type=float, default=MIN_RISE_K)
+    parser.add_argument(
+        "--step-minutes",
+        type=float,
+        default=RECOMMENDED_STEP_MINUTES,
+        help="model grid step (the fit regresses on differences over one step)",
+    )
+    parser.add_argument(
+        "--effort-power",
+        type=float,
+        default=1.0,
+        help="raise the effort the model sees to this power (0.5 = square root)",
+    )
     parser.add_argument("--json", action="store_true", help="print JSON instead of a table")
     args = parser.parse_args(argv)
     reports = [
@@ -384,6 +422,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.history_days,
             args.effort,
             args.min_rise,
+            args.step_minutes,
+            args.effort_power,
         )
         for path in args.files
     ]
