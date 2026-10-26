@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.4.0](https://github.com/d0ugal/ha-room-thermal-model/compare/v0.3.0...v0.4.0) (2026-10-26)
+
+
+### Features
+
+* step and effort power options in the back-test script ([63e310a](https://github.com/d0ugal/ha-room-thermal-model/commit/63e310ab34c9dd6b5de4752714ee6f5465370e88))
+
+
+### Bug Fixes
+
+* accept a slow loss rate as a well insulated house ([754ba8f](https://github.com/d0ugal/ha-room-thermal-model/commit/754ba8fb5f5a413a3a22d4d3eaf02d428fd8b408))
+* floor the robust fit scale at the sensor noise ([5ac3d61](https://github.com/d0ugal/ha-room-thermal-model/commit/5ac3d61ef98226acadde66ff4a80628cb542cd53))
+* run the model on a 15 minute grid ([f5e04bb](https://github.com/d0ugal/ha-room-thermal-model/commit/f5e04bb3912132e1c4857f9cf17136a12141496d))
+* skip the maximum reachable check for a slow loss rate ([409a23e](https://github.com/d0ugal/ha-room-thermal-model/commit/409a23e20c9be8256a33e43302db1ef503bef463))
+
+
+### Documentation
+
+* explain the grid step, the scale floor and slow-loss trust ([f637ef6](https://github.com/d0ugal/ha-room-thermal-model/commit/f637ef69d023ca5e2b15007b1a3b568eaac32d14))
+
 ## [0.3.0](https://github.com/d0ugal/ha-room-thermal-model/compare/v0.2.2...v0.3.0) (2026-10-26)
 
 
