@@ -11,6 +11,7 @@ make lint        # ruff check and format check, run in the pinned ruff container
 make format      # ruff fix and format
 make simulate    # synthetic rooms: learning curve (scripts/simulate.py)
 python scripts/backtest_runs.py HISTORY.jsonl   # replay history through run scoring and calibration
+python scripts/backtest_runs.py HISTORY.jsonl --baselines   # RC model against the run-level rule
 uvx pyright==1.1.408   # same pyright version as CI; rtm_core is held to strict
 ```
 
