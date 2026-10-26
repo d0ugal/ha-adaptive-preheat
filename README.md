@@ -1,4 +1,4 @@
-# Room Thermal Model
+# Adaptive Preheat
 
 A generic Home Assistant integration that **learns how each room heats up and cools
 down** from your own history, and tells you **how many minutes of heating a room needs**
@@ -8,9 +8,17 @@ It works with **any `climate` entity** (TRVs, generic_thermostat, Versatile Ther
 smart thermostats…) and only reads standard Home Assistant attributes. It never controls
 anything: it only exposes sensors.
 
-This is a fork of [giogandola98/ha-room-thermal-model](https://github.com/giogandola98/ha-room-thermal-model)
-with CI, release tooling, strict typing of the core, a coverage gate and [run scoring](#run-scoring)
-added. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+It began as a fork of [giogandola98/ha-room-thermal-model](https://github.com/giogandola98/ha-room-thermal-model)
+(MIT) and has since diverged: CI, release tooling, strict typing of the core, a coverage gate,
+[run scoring](#run-scoring), fit trust and self-calibration. See
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+> **Upgrading from `room_thermal_model` (before 0.6.0):** the integration domain is now
+> `adaptive_preheat`. Delete each zone under the old integration first (otherwise the new
+> entities get a `_2` suffix), remove the old `custom_components/room_thermal_model/`
+> directory, restart Home Assistant and add the zones again. Learnt models are not carried
+> over; use `import_history` to retrain at once. Entity ids (`sensor.<zone>_<key>`) are
+> unchanged, but services are now `adaptive_preheat.*`.
 
 ## How it works
 
@@ -49,15 +57,15 @@ from [Ecronika/ha-preheat](https://github.com/Ecronika/ha-preheat) (MIT, © 2025
 
 ## Installation
 
-HACS → ⋮ → **Custom repositories** → `https://github.com/d0ugal/ha-room-thermal-model`,
+HACS → ⋮ → **Custom repositories** → `https://github.com/d0ugal/ha-adaptive-preheat`,
 category **Integration** → install → restart Home Assistant.
-Manual: copy `custom_components/room_thermal_model/` into your config directory.
+Manual: copy `custom_components/adaptive_preheat/` into your config directory.
 
 Requires Home Assistant 2026.1+ and the `recorder` (for the history import).
 
 ## Configuration (one entry per zone)
 
-Settings → Devices & services → Add integration → **Room Thermal Model**.
+Settings → Devices & services → Add integration → **Adaptive Preheat**.
 
 | Input | Required | Notes |
 |---|---|---|
@@ -197,8 +205,8 @@ are still reported, so a template or a dashboard can show a warning.
 Changing the input sensors via **Reconfigure** discards the learnt model and re-imports
 the history automatically.
 
-Services: `room_thermal_model.retrain`, `room_thermal_model.reset`,
-`room_thermal_model.export_diagnostics`, `room_thermal_model.import_history` (see
+Services: `adaptive_preheat.retrain`, `adaptive_preheat.reset`,
+`adaptive_preheat.export_diagnostics`, `adaptive_preheat.import_history` (see
 [Importing history](#importing-history)). Each accepts an optional `entity_id` (any entity
 of the zone, multiple allowed) and an optional `config_entry_id`; a call without a target
 acts on every zone. Diagnostics download is supported.
@@ -208,7 +216,7 @@ acts on every zone. Diagnostics download is supported.
 The recorder keeps little history (10 days by default), but a Prometheus-compatible store
 (Prometheus, Mimir, VictoriaMetrics) often holds a year. `scripts/export_prometheus_history.py`
 (standard library only) turns it into a JSON-lines file and the service
-`room_thermal_model.import_history` loads it into one zone and refits.
+`adaptive_preheat.import_history` loads it into one zone and refits.
 
 File format, one row per time step, any order, timestamps with a UTC offset (`Z` or `+00:00`):
 
