@@ -7,10 +7,19 @@ from dataclasses import replace
 import pytest
 
 from rtm_core import ModelConfig, RCThermalModel
+from rtm_core import fit as fit_module
 from rtm_core import synthetic as syn
 from rtm_core.cooling import cooling_tau
 from rtm_core.deadtime import tangent_dead_time
-from rtm_core.fit import A_MIN, B_MIN, build_dataset, solve_linear, solve_projected
+from rtm_core.fit import (
+    A_MIN,
+    B_MIN,
+    Dataset,
+    build_dataset,
+    fit_rc,
+    solve_linear,
+    solve_projected,
+)
 
 
 def _rel(est: float, true: float) -> float:
@@ -159,3 +168,42 @@ def test_solve_linear_and_projection():
     theta, proj = solve_projected(eye, [-1.0, -2.0, 0.5])
     assert theta == [A_MIN, B_MIN, 0.5]
     assert set(proj) == {"a", "b"}
+
+
+def _idle_room_with_bursts() -> tuple[Dataset, list[float | None]]:
+    """A mostly idle room: 5 % of the rows heat, the rest do not move at all.
+
+    Mean heating rate a=1.8 K/h, seen through a sensor with 0.1 K resolution: one step reads
+    0.1 K (1.2 K/h on a 5 minute grid) and the next 0.2 K (2.4 K/h).
+    """
+    cfg = ModelConfig()
+    n = 1200
+    dt_h = cfg.step_minutes / 60.0
+    effort: list[float | None] = [1.0 if (k % 120) < 6 else 0.0 for k in range(n + 1)]
+    ys = [(1.2 if k % 2 else 2.4) * (effort[k] or 0.0) for k in range(n)]
+    xs = [5.0] * n  # constant lift over outdoor: b and c are not separable, only a matters
+    return Dataset(list(range(n)), ys, xs, [1.0] * n, True, dt_h), effort
+
+
+def test_scale_floor_keeps_heating_rows_from_being_outliers(monkeypatch: pytest.MonkeyPatch):
+    """Idle residuals are ~0, so their MAD says "noise is 0.001 K/h": without a floor every
+    heating row is an outlier and the fit ignores the heating (on real sensors the heating
+    rate came out ten times too small)."""
+    ds, effort = _idle_room_with_bursts()
+    floored = fit_rc(ds, effort, ModelConfig())
+    assert floored is not None
+    assert _rel(floored.a, 1.8) < 0.2
+
+    monkeypatch.setattr(fit_module, "SCALE_FLOOR_K", 0.0)
+    unfloored = fit_rc(ds, effort, ModelConfig())
+    assert unfloored is not None
+    # without the floor every heating row is dropped and the estimate is the prior's, not ours
+    assert abs(unfloored.a - 1.8) > 3 * abs(floored.a - 1.8)
+
+
+def test_scale_floor_is_per_step_not_per_hour():
+    """The same sensor noise in kelvin is a larger K/h figure on a finer grid."""
+    ds, effort = _idle_room_with_bursts()
+    res = fit_rc(ds, effort, ModelConfig())
+    assert res is not None
+    assert res.scale >= fit_module.SCALE_FLOOR_K / ds.dt_h

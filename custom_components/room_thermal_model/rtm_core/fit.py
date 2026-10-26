@@ -34,6 +34,7 @@ A_MIN = 0.05
 B_MIN, B_MAX = 0.01, 2.0
 IRLS_PASSES = 3
 PRIOR_HOURS = 6.0
+SCALE_FLOOR_K = 0.1  # per-step noise floor of the robust scale (sensor resolution, see fit_rc)
 NO_OUTDOOR_REF_C = 10.0  # prior for c' = b·mean(Tout) when no outdoor data exists
 
 
@@ -364,7 +365,11 @@ def fit_rc(
             if sse < best_sse:
                 best_sse, best_res = sse, sol.resid
         scale = 1.4826 * _median([abs(r) for r in best_res])
-    scale = max(scale, 1e-3)
+    # A room is idle most of the time, so the residuals are mostly zero and their MAD is far
+    # below the real noise of one step (a sensor that moves in 0.1 K steps makes a quiet step
+    # read 0 and a moving one 0.1 K). Without a floor Huber treats every heating row as an
+    # outlier and the heating rate collapses by an order of magnitude.
+    scale = max(scale, SCALE_FLOOR_K / ds.dt_h, 1e-3)
 
     # 2) Huber IRLS for each candidate, compared with the same scale
     crit: dict[int, float] = {}
